@@ -161,7 +161,7 @@ const commands = {
     const tbl = table(pos[0])
     const data = readJson(pos[1])
     const rows = await Promise.all((Array.isArray(data) ? data : [data]).map((r) => prepare(r)))
-    const out = check(await db.from(tbl).insert(rows).select('id'))
+    const out = check(await db.from(tbl).insert(rows, { defaultToNull: false }).select('id'))
     console.log(`inserted ${out.length} into ${tbl}: ${out.map((r) => r.id).join(', ')}`)
   },
 
@@ -193,13 +193,13 @@ const commands = {
     const existing = check(await db.from('tracks').select('id').eq('owner', o))
     if (existing.length) fail('tracks already exist; seed only runs on an empty planner')
     if (data.tracks?.length) {
-      check(await db.from('tracks').insert(data.tracks.map((t, i) => ({ sort: i, ...t, owner: o }))))
+      check(await db.from('tracks').insert(data.tracks.map((t, i) => ({ sort: i, ...t, owner: o })), { defaultToNull: false }))
       trackMap = undefined
     }
     for (const tbl of ['principles', 'tasks', 'milestones', 'ideas']) {
       if (!data[tbl]?.length) continue
       const rows = await Promise.all(data[tbl].map((r, i) => prepare(tbl === 'principles' || tbl === 'tasks' ? { sort: i, ...r } : r)))
-      check(await db.from(tbl).insert(rows))
+      check(await db.from(tbl).insert(rows, { defaultToNull: false }))
       console.log(`seeded ${rows.length} ${tbl}`)
     }
     console.log(`seeded ${data.tracks?.length ?? 0} tracks`)

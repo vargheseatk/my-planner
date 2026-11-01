@@ -1,7 +1,7 @@
 # My Planner
 
 Varghese's personal planner: tracks, tasks with checklists, an ideas inbox, principles, milestones and day plans.
-Static React app (Vite) on GitHub Pages; data in Supabase (personal account, project `isjyfqwpwutpvdydsili`).
+Static React app (Vite) on GitHub Pages; data in Supabase (personal account, project `rinthtydynzlmmvoeqpi`).
 No AI API anywhere: Claude reads and writes the planner from chat via the local CLI below.
 
 ## Pushing to the planner from chat
