@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+*.log
+
+# Personal content: stays local, never in the public repo
+docs/
+supabase/seed.json
