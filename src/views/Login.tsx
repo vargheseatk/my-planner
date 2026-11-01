@@ -37,7 +37,9 @@ export function Login() {
 
   return (
     <div className="login">
+      <span className="brand-mark big" />
       <h1>My Planner</h1>
+      <p className="lede">Plan the day. Keep the tracks moving.</p>
       {mode === 'password' ? (
         <form
           onSubmit={(e) => {
@@ -46,7 +48,7 @@ export function Login() {
           }}
         >
           <input
-            className="edit"
+            className="boxed"
             type="password"
             autoComplete="current-password"
             placeholder="Password"
@@ -77,7 +79,7 @@ export function Login() {
           ) : (
             <>
               <p className="sub">Check your email for a code (or tap the link in it).</p>
-              <input className="edit code" inputMode="numeric" autoComplete="one-time-code" placeholder="Code from email" value={code} onChange={(e) => setCode(e.target.value)} />
+              <input className="boxed code" inputMode="numeric" autoComplete="one-time-code" placeholder="Code from email" value={code} onChange={(e) => setCode(e.target.value)} />
               <button className="btn primary" disabled={busy || code.trim().length < 6}>
                 Sign in
               </button>

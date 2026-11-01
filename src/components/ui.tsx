@@ -1,7 +1,25 @@
-import { useEffect, useRef, useState } from 'react'
-import { relative, todayIso } from '../dates'
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { fmtDay, relative, todayIso } from '../dates'
 import { useStore } from '../store'
-import type { CheckItem, Task, Track } from '../types'
+import type { Task, Track } from '../types'
+import { Icon } from './icons'
+
+// ---------- App-level UI actions (task drawer, capture sheet) ----------
+
+export interface CaptureDefaults {
+  kind?: 'idea' | 'task'
+  trackId?: string | null
+}
+
+interface UI {
+  openTask: (id: string) => void
+  openCapture: (d?: CaptureDefaults) => void
+}
+
+export const UICtx = createContext<UI>({ openTask: () => {}, openCapture: () => {} })
+export const useUI = () => useContext(UICtx)
+
+// ---------- Inputs ----------
 
 // Text that saves on blur. Multiline renders a textarea that grows with content.
 export function EditText({
@@ -10,12 +28,14 @@ export function EditText({
   placeholder,
   multiline,
   className = '',
+  autoFocus,
 }: {
   value: string | null
   onSave: (v: string) => void
   placeholder?: string
   multiline?: boolean
   className?: string
+  autoFocus?: boolean
 }) {
   const [v, setV] = useState(value ?? '')
   const ref = useRef<HTMLTextAreaElement>(null)
@@ -30,20 +50,13 @@ export function EditText({
     if (v !== (value ?? '')) onSave(v)
   }
   return multiline ? (
-    <textarea
-      ref={ref}
-      className={`edit ${className}`}
-      rows={1}
-      value={v}
-      placeholder={placeholder}
-      onChange={(e) => setV(e.target.value)}
-      onBlur={commit}
-    />
+    <textarea ref={ref} className={`edit ${className}`} rows={1} value={v} placeholder={placeholder} autoFocus={autoFocus} onChange={(e) => setV(e.target.value)} onBlur={commit} />
   ) : (
     <input
       className={`edit ${className}`}
       value={v}
       placeholder={placeholder}
+      autoFocus={autoFocus}
       onChange={(e) => setV(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
@@ -51,41 +64,49 @@ export function EditText({
   )
 }
 
-export function TrackDot({ track }: { track?: Track }) {
-  return <span className="dot" style={{ background: track?.color ?? 'var(--muted)' }} />
-}
-
-export function TrackChip({ track }: { track?: Track }) {
-  if (!track) return null
+export function Segmented<T extends string | number>({ value, options, onChange, small }: { value: T; options: { value: T; label: ReactNode }[]; onChange: (v: T) => void; small?: boolean }) {
   return (
-    <span className="chip" style={{ '--c': track.color } as React.CSSProperties}>
-      {track.name}
-    </span>
+    <div className={`seg ${small ? 'small' : ''}`} role="radiogroup">
+      {options.map((o) => (
+        <button key={String(o.value)} type="button" role="radio" aria-checked={o.value === value} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
   )
 }
 
-export function TrackSelect({
-  value,
-  onChange,
-  empty = 'No track',
-}: {
-  value: string | null
-  onChange: (id: string | null) => void
-  empty?: string
-}) {
+export const sortedTracks = (tracks: Track[]) => tracks.slice().sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || a.sort - b.sort)
+const STATUS_ORDER = ['active', 'paused', 'parked', 'done']
+
+// Horizontal chips to choose a track (or none).
+export function TrackChips({ value, onChange, allowNone = true, onlyLive = false }: { value: string | null; onChange: (id: string | null) => void; allowNone?: boolean; onlyLive?: boolean }) {
   const { data } = useStore()
+  const tracks = sortedTracks(data.tracks).filter((t) => !onlyLive || t.status !== 'done' || t.id === value)
   return (
-    <select className="select" value={value ?? ''} onChange={(e) => onChange(e.target.value || null)}>
-      <option value="">{empty}</option>
-      {data.tracks
-        .slice()
-        .sort((a, b) => a.sort - b.sort)
-        .map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
-          </option>
-        ))}
-    </select>
+    <div className="chips">
+      {allowNone && (
+        <button type="button" className={`chip-btn ${value === null ? 'on' : ''}`} onClick={() => onChange(null)}>
+          None
+        </button>
+      )}
+      {tracks.map((t) => (
+        <button key={t.id} type="button" className={`chip-btn ${value === t.id ? 'on' : ''}`} style={{ '--c': t.color } as React.CSSProperties} onClick={() => onChange(value === t.id && allowNone ? null : t.id)}>
+          <span className="dot" />
+          {t.name}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export function TrackTag({ track }: { track?: Track }) {
+  if (!track) return null
+  return (
+    <span className="track-tag" style={{ '--c': track.color } as React.CSSProperties}>
+      <span className="dot" />
+      {track.name}
+    </span>
   )
 }
 
@@ -94,153 +115,127 @@ export function DueTag({ day, label }: { day: string | null; label?: string }) {
   const t = todayIso()
   const cls = day < t ? 'due over' : day === t ? 'due now' : 'due'
   return (
-    <span className={cls} title={day}>
+    <span className={cls} title={fmtDay(day)}>
       {label ? `${label} ` : ''}
       {relative(day)}
     </span>
   )
 }
 
-// One task: status toggle, title, meta, expandable checklist and notes.
-export function TaskCard({ task, open: openInit = false, showTrack = true }: { task: Task; open?: boolean; showTrack?: boolean }) {
-  const { data, update, remove } = useStore()
-  const [open, setOpen] = useState(openInit)
-  const [newItem, setNewItem] = useState('')
+// ---------- Task row ----------
+
+export function TaskRow({ task, showTrack = true, onRemove }: { task: Task; showTrack?: boolean; onRemove?: () => void }) {
+  const { data, update } = useStore()
+  const { openTask } = useUI()
   const track = data.tracks.find((t) => t.id === task.track_id)
   const done = task.status === 'done'
   const list = task.checklist ?? []
   const doneCount = list.filter((c) => c.done).length
-
-  const setList = (checklist: CheckItem[]) => update('tasks', task.id, { checklist })
-  const addItem = () => {
-    if (!newItem.trim()) return
-    setList([...list, { text: newItem.trim(), done: false }])
-    setNewItem('')
-  }
+  const future = task.start_on && task.start_on > todayIso()
 
   return (
-    <div className={`task ${done ? 'is-done' : ''} p${task.priority}`}>
-      <div className="task-row">
-        <button
-          className={`check ${done ? 'on' : ''}`}
-          aria-label={done ? 'Mark not done' : 'Mark done'}
-          onClick={() => update('tasks', task.id, { status: done ? 'todo' : 'done' })}
-        />
-        <div className="task-main" onClick={() => setOpen(!open)}>
-          <div className="task-title">{task.title}</div>
-          <div className="meta">
-            {showTrack && <TrackChip track={track} />}
-            {task.status === 'doing' && <span className="tag doing">doing</span>}
-            {task.status === 'waiting' && <span className="tag waiting">waiting{task.waiting_on ? ` on ${task.waiting_on}` : ''}</span>}
-            {list.length > 0 && (
-              <span className="tag">
-                {doneCount}/{list.length}
+    <div className={`trow ${done ? 'is-done' : ''} ${task.status === 'dropped' ? 'is-dropped' : ''}`} style={{ '--c': track?.color ?? 'var(--muted)' } as React.CSSProperties}>
+      <button className={`tick ${done ? 'on' : ''}`} aria-label={done ? 'Mark not done' : 'Mark done'} onClick={() => update('tasks', task.id, { status: done ? 'todo' : 'done' })}>
+        <Icon name="check" size={14} />
+      </button>
+      <button className="trow-main" onClick={() => openTask(task.id)}>
+        <span className="trow-title">
+          {task.priority === 1 && !done && <Icon name="flag" size={13} className="prio" />}
+          {task.title}
+        </span>
+        <span className="trow-meta">
+          {showTrack && <TrackTag track={track} />}
+          {task.status === 'doing' && <span className="pill doing">In progress</span>}
+          {task.status === 'waiting' && (
+            <span className="pill waiting">
+              <Icon name="hourglass" size={12} />
+              {task.waiting_on ?? 'Waiting'}
+            </span>
+          )}
+          {list.length > 0 && (
+            <span className="mini-progress" title={`${doneCount} of ${list.length}`}>
+              <span className="bar">
+                <span style={{ width: `${(doneCount / list.length) * 100}%` }} />
               </span>
-            )}
-            {task.start_on && task.start_on > todayIso() && <DueTag day={task.start_on} label="starts" />}
-            {!done && <DueTag day={task.due_on} />}
-          </div>
-        </div>
-      </div>
-      {open && (
-        <div className="task-body">
-          <EditText className="title-edit" value={task.title} onSave={(title) => title && update('tasks', task.id, { title })} />
-          <ul className="checklist">
-            {list.map((c, i) => (
-              <li key={i} className={c.done ? 'on' : ''}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={c.done}
-                    onChange={() => setList(list.map((x, j) => (j === i ? { ...x, done: !x.done } : x)))}
-                  />
-                  <span>{c.text}</span>
-                </label>
-                <button className="x" aria-label="Remove item" onClick={() => setList(list.filter((_, j) => j !== i))}>
-                  ×
-                </button>
-              </li>
-            ))}
-            <li className="add">
-              <input
-                className="edit"
-                placeholder="Add checklist item"
-                value={newItem}
-                onChange={(e) => setNewItem(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addItem()}
-                onBlur={addItem}
-              />
-            </li>
-          </ul>
-          <EditText multiline value={task.notes} placeholder="Notes" onSave={(notes) => update('tasks', task.id, { notes: notes || null })} />
-          <div className="fields">
-            <label>
-              Status
-              <select className="select" value={task.status} onChange={(e) => update('tasks', task.id, { status: e.target.value as Task['status'] })}>
-                {['todo', 'doing', 'waiting', 'done', 'dropped'].map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Track
-              <TrackSelect value={task.track_id} onChange={(track_id) => update('tasks', task.id, { track_id })} />
-            </label>
-            <label>
-              Priority
-              <select className="select" value={task.priority} onChange={(e) => update('tasks', task.id, { priority: Number(e.target.value) })}>
-                <option value={1}>High</option>
-                <option value={2}>Normal</option>
-                <option value={3}>Low</option>
-              </select>
-            </label>
-            <label>
-              Starts
-              <input type="date" className="select" value={task.start_on ?? ''} onChange={(e) => update('tasks', task.id, { start_on: e.target.value || null })} />
-            </label>
-            <label>
-              Due
-              <input type="date" className="select" value={task.due_on ?? ''} onChange={(e) => update('tasks', task.id, { due_on: e.target.value || null })} />
-            </label>
-            {task.status === 'waiting' && (
-              <label>
-                Waiting on
-                <EditText value={task.waiting_on} onSave={(waiting_on) => update('tasks', task.id, { waiting_on: waiting_on || null })} />
-              </label>
-            )}
-          </div>
-          <div className="row-end">
-            <button className="link danger" onClick={() => confirm('Delete this task?') && remove('tasks', task.id)}>
-              Delete task
-            </button>
-          </div>
-        </div>
+              <em>
+                {doneCount}/{list.length}
+              </em>
+            </span>
+          )}
+          {future && <DueTag day={task.start_on} label="starts" />}
+          {!done && <DueTag day={task.due_on} />}
+        </span>
+      </button>
+      {onRemove && (
+        <button className="icon-btn ghost" aria-label="Remove from list" onClick={onRemove}>
+          <Icon name="x" size={16} />
+        </button>
       )}
     </div>
   )
 }
 
-// One-line add box.
+// ---------- Sheet (right drawer on desktop, bottom sheet on phones) ----------
+
+export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title?: ReactNode; children: ReactNode }) {
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    document.body.classList.add('no-scroll')
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.classList.remove('no-scroll')
+    }
+  }, [open, onClose])
+  if (!open) return null
+  return (
+    <div className="sheet-wrap" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="sheet" role="dialog" aria-modal="true">
+        <div className="sheet-head">
+          <div className="sheet-title">{title}</div>
+          <button className="icon-btn" aria-label="Close" onClick={onClose}>
+            <Icon name="x" />
+          </button>
+        </div>
+        <div className="sheet-body">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+// ---------- Small pieces ----------
+
 export function AddLine({ placeholder, onAdd }: { placeholder: string; onAdd: (text: string) => void }) {
   const [v, setV] = useState('')
-  const submit = () => {
-    if (!v.trim()) return
-    onAdd(v.trim())
-    setV('')
-  }
   return (
     <form
       className="addline"
       onSubmit={(e) => {
         e.preventDefault()
-        submit()
+        if (!v.trim()) return
+        onAdd(v.trim())
+        setV('')
       }}
     >
+      <Icon name="plus" size={16} />
       <input className="edit" placeholder={placeholder} value={v} onChange={(e) => setV(e.target.value)} />
-      <button className="btn" disabled={!v.trim()}>
-        Add
-      </button>
     </form>
+  )
+}
+
+export function Section({ title, count, action, children, className = '' }: { title: ReactNode; count?: number; action?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <section className={`section ${className}`}>
+      <div className="section-head">
+        <h2>
+          {title}
+          {count !== undefined && <span className="count">{count}</span>}
+        </h2>
+        {action}
+      </div>
+      {children}
+    </section>
   )
 }
 

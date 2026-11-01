@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { StoreProvider, useStore } from './store'
@@ -7,11 +7,22 @@ import { Tracks } from './views/Tracks'
 import { Inbox } from './views/Inbox'
 import { Timeline } from './views/Timeline'
 import { Principles } from './views/Principles'
+import { Settings } from './views/Settings'
 import { Login } from './views/Login'
+import { Icon, type IconName } from './components/icons'
+import { Sheet, UICtx, openTasks, sortedTracks, type CaptureDefaults } from './components/ui'
+import { TaskDetail } from './components/TaskDetail'
+import { Capture } from './components/Capture'
+import { VIEWS, go, type View } from './nav'
 
-const VIEWS = ['today', 'tracks', 'ideas', 'timeline', 'principles'] as const
-type View = (typeof VIEWS)[number]
-const LABELS: Record<View, string> = { today: 'Today', tracks: 'Tracks', ideas: 'Ideas', timeline: 'Timeline', principles: 'Principles' }
+const META: Record<View, { label: string; icon: IconName }> = {
+  today: { label: 'Today', icon: 'today' },
+  tracks: { label: 'Tracks', icon: 'tracks' },
+  ideas: { label: 'Ideas', icon: 'ideas' },
+  timeline: { label: 'Timeline', icon: 'timeline' },
+  principles: { label: 'Principles', icon: 'principles' },
+  settings: { label: 'Settings', icon: 'settings' },
+}
 
 // Hash route: #today, #tracks, #tracks/<id>, #ideas … Anything else (e.g. an auth callback) falls back to today.
 function readHash(): { view: View; id: string | null } {
@@ -38,119 +49,159 @@ export function App() {
 }
 
 function Shell() {
-  const { data, loading, error, clearError, insert } = useStore()
+  const { data, loading, error, clearError } = useStore()
   const [route, setRoute] = useState(readHash)
-  const [capture, setCapture] = useState('')
-  const [pwOpen, setPwOpen] = useState(false)
+  const [taskId, setTaskId] = useState<string | null>(null)
+  const [capture, setCapture] = useState<CaptureDefaults | null>(null)
 
   useEffect(() => {
-    const on = () => setRoute(readHash())
+    const on = () => {
+      setRoute(readHash())
+      window.scrollTo(0, 0)
+    }
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])
 
-  const go = (view: View, id: string | null = null) => {
-    location.hash = id ? `${view}/${id}` : view
-  }
-  const inbox = data.ideas.filter((i) => i.status === 'inbox').length
-
-  return (
-    <div className="shell">
-      <nav className="nav">
-        <span className="brand">Planner</span>
-        {VIEWS.map((v) => (
-          <button key={v} className={route.view === v ? 'on' : ''} onClick={() => go(v)}>
-            {LABELS[v]}
-            {v === 'ideas' && inbox > 0 && <span className="badge">{inbox}</span>}
-          </button>
-        ))}
-        <button className="link signout" onClick={() => setPwOpen(!pwOpen)}>
-          Password
-        </button>
-        <button className="link" onClick={() => supabase.auth.signOut()}>
-          Sign out
-        </button>
-      </nav>
-
-      {pwOpen && <PasswordForm onDone={() => setPwOpen(false)} />}
-
-      <form
-        className="capture"
-        onSubmit={async (e) => {
-          e.preventDefault()
-          if (!capture.trim()) return
-          await insert('ideas', { body: capture.trim() })
-          setCapture('')
-        }}
-      >
-        <input className="edit" placeholder="Capture anything… (Enter to send to Ideas)" value={capture} onChange={(e) => setCapture(e.target.value)} />
-      </form>
-
-      {error && (
-        <div className="error-bar" onClick={clearError}>
-          {error} <span>(tap to dismiss)</span>
-        </div>
-      )}
-
-      <main>
-        {loading ? (
-          <p className="empty">Loading…</p>
-        ) : route.view === 'today' ? (
-          <Today />
-        ) : route.view === 'tracks' ? (
-          <Tracks selected={route.id} onSelect={(id) => go('tracks', id)} />
-        ) : route.view === 'ideas' ? (
-          <Inbox />
-        ) : route.view === 'timeline' ? (
-          <Timeline />
-        ) : (
-          <Principles />
-        )}
-      </main>
-    </div>
-  )
-}
-
-function PasswordForm({ onDone }: { onDone: () => void }) {
-  const [pw, setPw] = useState('')
-  const [again, setAgain] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
-  const mismatch = again.length > 0 && pw !== again
-
-  const save = async () => {
-    setBusy(true)
-    const { error } = await supabase.auth.updateUser({ password: pw })
-    setBusy(false)
-    if (error) setMsg({ ok: false, text: error.message })
-    else {
-      setMsg({ ok: true, text: 'Password saved. Use it to sign in from now on.' })
-      setPw('')
-      setAgain('')
-    }
-  }
-
-  return (
-    <form
-      className="card pwform"
-      onSubmit={(e) => {
+  // "n" opens capture from anywhere (when not typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement
+      if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !t.closest('input, textarea, select, [contenteditable]')) {
         e.preventDefault()
-        if (pw.length >= 8 && !mismatch) save()
-      }}
-    >
-      <div className="label">Set your password (at least 8 characters)</div>
-      <input className="edit" type="password" autoComplete="new-password" placeholder="New password" value={pw} onChange={(e) => setPw(e.target.value)} />
-      <input className="edit" type="password" autoComplete="new-password" placeholder="Repeat it" value={again} onChange={(e) => setAgain(e.target.value)} />
-      {mismatch && <p className="error">Passwords don't match.</p>}
-      {msg && <p className={msg.ok ? 'ok' : 'error'}>{msg.text}</p>}
-      <div className="row-end">
-        <button type="button" className="link" onClick={onDone}>
-          Close
-        </button>
-        <button className="btn primary" disabled={busy || pw.length < 8 || pw !== again}>
-          Save password
-        </button>
+        setCapture({})
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const ui = useMemo(() => ({ openTask: setTaskId, openCapture: (d: CaptureDefaults = {}) => setCapture(d) }), [])
+  const closeTask = useCallback(() => setTaskId(null), [])
+  const closeCapture = useCallback(() => setCapture(null), [])
+  const task = data.tasks.find((t) => t.id === taskId)
+  const taskTrack = data.tracks.find((t) => t.id === task?.track_id)
+  const inbox = data.ideas.filter((i) => i.status === 'inbox').length
+  const open = openTasks(data.tasks)
+  const tracks = sortedTracks(data.tracks).filter((t) => t.status !== 'done')
+
+  return (
+    <UICtx.Provider value={ui}>
+      <div className="app">
+        <aside className="sidebar">
+          <div className="brand">
+            <span className="brand-mark" />
+            Planner
+          </div>
+          <button className="capture-btn" onClick={() => setCapture({})}>
+            <Icon name="plus" size={18} /> Capture <kbd>N</kbd>
+          </button>
+          <nav className="side-nav">
+            {(['today', 'timeline', 'ideas', 'principles'] as View[]).map((v) => (
+              <button key={v} className={route.view === v ? 'on' : ''} onClick={() => go(v)}>
+                <Icon name={META[v].icon} />
+                {META[v].label}
+                {v === 'ideas' && inbox > 0 && <span className="badge">{inbox}</span>}
+              </button>
+            ))}
+          </nav>
+          <div className="side-label">
+            <button className={route.view === 'tracks' && !route.id ? 'on' : ''} onClick={() => go('tracks')}>
+              Tracks
+            </button>
+          </div>
+          <nav className="side-tracks">
+            {tracks.map((t) => (
+              <button key={t.id} className={`${route.view === 'tracks' && route.id === t.id ? 'on' : ''} s-${t.status}`} style={{ '--c': t.color } as React.CSSProperties} onClick={() => go('tracks', t.id)}>
+                <span className="dot" />
+                <span className="name">{t.name}</span>
+                <span className="n">{open.filter((x) => x.track_id === t.id).length || ''}</span>
+              </button>
+            ))}
+          </nav>
+          <div className="side-foot">
+            <button className={route.view === 'settings' ? 'on' : ''} onClick={() => go('settings')}>
+              <Icon name="settings" size={18} />
+              Settings
+            </button>
+          </div>
+        </aside>
+
+        <header className="topbar">
+          <span className="brand">
+            <span className="brand-mark" />
+            {route.view === 'tracks' && route.id ? data.tracks.find((t) => t.id === route.id)?.name ?? 'Track' : META[route.view].label}
+          </span>
+          <button className={`icon-btn ${route.view === 'principles' ? 'on' : ''}`} aria-label="Principles" onClick={() => go('principles')}>
+            <Icon name="principles" />
+          </button>
+          <button className={`icon-btn ${route.view === 'settings' ? 'on' : ''}`} aria-label="Settings" onClick={() => go('settings')}>
+            <Icon name="settings" />
+          </button>
+        </header>
+
+        <main className="main">
+          {error && (
+            <div className="error-bar" onClick={clearError}>
+              {error} <span>Tap to dismiss</span>
+            </div>
+          )}
+          {loading ? (
+            <p className="empty">Loading…</p>
+          ) : route.view === 'today' ? (
+            <Today />
+          ) : route.view === 'tracks' ? (
+            <Tracks selected={route.id} onSelect={(id) => go('tracks', id)} />
+          ) : route.view === 'ideas' ? (
+            <Inbox />
+          ) : route.view === 'timeline' ? (
+            <Timeline />
+          ) : route.view === 'principles' ? (
+            <Principles />
+          ) : (
+            <Settings />
+          )}
+        </main>
+
+        <nav className="tabbar">
+          {(['today', 'tracks'] as View[]).map((v) => (
+            <button key={v} className={route.view === v ? 'on' : ''} onClick={() => go(v)}>
+              <Icon name={META[v].icon} />
+              <span>{META[v].label}</span>
+            </button>
+          ))}
+          <button className="fab" aria-label="Capture" onClick={() => setCapture({})}>
+            <Icon name="plus" size={26} />
+          </button>
+          {(['ideas', 'timeline'] as View[]).map((v) => (
+            <button key={v} className={route.view === v ? 'on' : ''} onClick={() => go(v)}>
+              <Icon name={META[v].icon} />
+              <span>{META[v].label}</span>
+              {v === 'ideas' && inbox > 0 && <span className="badge">{inbox}</span>}
+            </button>
+          ))}
+        </nav>
+
+        <Sheet
+          open={!!task}
+          onClose={closeTask}
+          title={
+            taskTrack ? (
+              <button className="sheet-crumb" style={{ '--c': taskTrack.color } as React.CSSProperties} onClick={() => (closeTask(), go('tracks', taskTrack.id))}>
+                <span className="dot" />
+                {taskTrack.name}
+              </button>
+            ) : (
+              'Task'
+            )
+          }
+        >
+          {task && <TaskDetail key={task.id} task={task} onClose={closeTask} />}
+        </Sheet>
+        <Sheet open={!!capture} onClose={closeCapture} title="Capture">
+          {capture && <Capture defaults={capture} onDone={closeCapture} />}
+        </Sheet>
       </div>
-    </form>
+    </UICtx.Provider>
   )
 }
