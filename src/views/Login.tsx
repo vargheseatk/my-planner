@@ -1,66 +1,94 @@
 import { useState } from 'react'
+import { OWNER_EMAIL } from '../config'
 import { supabase } from '../supabase'
 
-// Email one-time code. shouldCreateUser is false, so only the account that
-// already exists in Supabase can sign in.
+// Password only: the email is fixed to the single owner account.
+// "Email me a code" is the fallback if the password is forgotten.
 export function Login() {
-  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [code, setCode] = useState('')
+  const [mode, setMode] = useState<'password' | 'code'>('password')
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
-  const send = async () => {
+  const run = async (fn: () => Promise<{ error: { message: string } | null }>) => {
     setBusy(true)
     setMsg(null)
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname },
-    })
+    const { error } = await fn()
     setBusy(false)
     if (error) setMsg(error.message)
-    else setSent(true)
+    return !error
   }
 
-  const verify = async () => {
-    setBusy(true)
-    setMsg(null)
-    const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: 'email' })
-    setBusy(false)
-    if (error) setMsg(error.message)
+  const signIn = () => run(() => supabase.auth.signInWithPassword({ email: OWNER_EMAIL, password }))
+
+  const sendCode = async () => {
+    const ok = await run(() =>
+      supabase.auth.signInWithOtp({
+        email: OWNER_EMAIL,
+        options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname },
+      }),
+    )
+    if (ok) setSent(true)
   }
+
+  const verify = () => run(() => supabase.auth.verifyOtp({ email: OWNER_EMAIL, token: code.trim(), type: 'email' }))
 
   return (
     <div className="login">
       <h1>My Planner</h1>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (sent) verify()
-          else send()
-        }}
-      >
-        {!sent ? (
-          <>
-            <input className="edit" type="email" autoComplete="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <button className="btn primary" disabled={busy || !email}>
-              Send code
+      {mode === 'password' ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            signIn()
+          }}
+        >
+          <input
+            className="edit"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Password"
+            autoFocus
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button className="btn primary" disabled={busy || !password}>
+            Sign in
+          </button>
+          <button type="button" className="link" onClick={() => setMode('code')}>
+            Forgot password? Email me a code
+          </button>
+          {msg && <p className="error">{msg}</p>}
+        </form>
+      ) : (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (sent) verify()
+            else sendCode()
+          }}
+        >
+          {!sent ? (
+            <button className="btn primary" disabled={busy}>
+              Send a sign-in code to my email
             </button>
-          </>
-        ) : (
-          <>
-            <p className="sub">Check {email} for a code (or tap the link in the email).</p>
-            <input className="edit code" inputMode="numeric" autoComplete="one-time-code" placeholder="Code from email" value={code} onChange={(e) => setCode(e.target.value)} />
-            <button className="btn primary" disabled={busy || code.trim().length < 6}>
-              Sign in
-            </button>
-            <button type="button" className="link" onClick={() => setSent(false)}>
-              Use a different email
-            </button>
-          </>
-        )}
-        {msg && <p className="error">{msg}</p>}
-      </form>
+          ) : (
+            <>
+              <p className="sub">Check your email for a code (or tap the link in it).</p>
+              <input className="edit code" inputMode="numeric" autoComplete="one-time-code" placeholder="Code from email" value={code} onChange={(e) => setCode(e.target.value)} />
+              <button className="btn primary" disabled={busy || code.trim().length < 6}>
+                Sign in
+              </button>
+            </>
+          )}
+          <button type="button" className="link" onClick={() => setMode('password')}>
+            Back to password
+          </button>
+          {msg && <p className="error">{msg}</p>}
+        </form>
+      )}
     </div>
   )
 }

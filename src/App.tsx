@@ -41,6 +41,7 @@ function Shell() {
   const { data, loading, error, clearError, insert } = useStore()
   const [route, setRoute] = useState(readHash)
   const [capture, setCapture] = useState('')
+  const [pwOpen, setPwOpen] = useState(false)
 
   useEffect(() => {
     const on = () => setRoute(readHash())
@@ -63,10 +64,15 @@ function Shell() {
             {v === 'ideas' && inbox > 0 && <span className="badge">{inbox}</span>}
           </button>
         ))}
-        <button className="link signout" onClick={() => supabase.auth.signOut()}>
+        <button className="link signout" onClick={() => setPwOpen(!pwOpen)}>
+          Password
+        </button>
+        <button className="link" onClick={() => supabase.auth.signOut()}>
           Sign out
         </button>
       </nav>
+
+      {pwOpen && <PasswordForm onDone={() => setPwOpen(false)} />}
 
       <form
         className="capture"
@@ -102,5 +108,49 @@ function Shell() {
         )}
       </main>
     </div>
+  )
+}
+
+function PasswordForm({ onDone }: { onDone: () => void }) {
+  const [pw, setPw] = useState('')
+  const [again, setAgain] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const mismatch = again.length > 0 && pw !== again
+
+  const save = async () => {
+    setBusy(true)
+    const { error } = await supabase.auth.updateUser({ password: pw })
+    setBusy(false)
+    if (error) setMsg({ ok: false, text: error.message })
+    else {
+      setMsg({ ok: true, text: 'Password saved. Use it to sign in from now on.' })
+      setPw('')
+      setAgain('')
+    }
+  }
+
+  return (
+    <form
+      className="card pwform"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (pw.length >= 8 && !mismatch) save()
+      }}
+    >
+      <div className="label">Set your password (at least 8 characters)</div>
+      <input className="edit" type="password" autoComplete="new-password" placeholder="New password" value={pw} onChange={(e) => setPw(e.target.value)} />
+      <input className="edit" type="password" autoComplete="new-password" placeholder="Repeat it" value={again} onChange={(e) => setAgain(e.target.value)} />
+      {mismatch && <p className="error">Passwords don't match.</p>}
+      {msg && <p className={msg.ok ? 'ok' : 'error'}>{msg.text}</p>}
+      <div className="row-end">
+        <button type="button" className="link" onClick={onDone}>
+          Close
+        </button>
+        <button className="btn primary" disabled={busy || pw.length < 8 || pw !== again}>
+          Save password
+        </button>
+      </div>
+    </form>
   )
 }
