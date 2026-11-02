@@ -19,9 +19,9 @@ import type { Lane, Task, Track } from '../types'
 import { Icon } from '../components/icons'
 import { AREAS, AddLine, DueTag, TaskRow, openTasks, sortedTracks, useUI } from '../components/ui'
 
-const LANES: { lane: Lane; title: string; hint: string }[] = [
-  { lane: 'now', title: 'Priority', hint: 'Top of this list is your next step.' },
-  { lane: 'later', title: 'Later', hint: 'Parked until a priority frees up.' },
+const LANES: { lane: Lane; title: string }[] = [
+  { lane: 'now', title: 'Priority' },
+  { lane: 'later', title: 'Later' },
 ]
 
 const bySort = (a: Task, b: Task) => a.sort - b.sort || a.created_at.localeCompare(b.created_at)
@@ -40,7 +40,6 @@ type Lanes = Record<Lane, string[]>
 function TrackLanes({ track }: { track: Track }) {
   const { data, insert, remove, updateMany } = useStore()
   const { openTrack } = useUI()
-  const [showDone, setShowDone] = useState(false)
   // While dragging we hold the lane order locally; otherwise it comes straight from data.
   const [drag, setDrag] = useState<Lanes | null>(null)
 
@@ -103,70 +102,67 @@ function TrackLanes({ track }: { track: Track }) {
   return (
     <div className="panel tasks-panel" style={{ '--c': track.color } as React.CSSProperties}>
       <header className="track-head">
-        <div className="th-top">
-          <span className="dot big" />
-          <h1>{track.name}</h1>
-          <button className="btn small ghost" onClick={() => openTrack(track.id)}>
-            Details
-          </button>
-        </div>
-        {track.purpose && <p className="th-purpose">{track.purpose}</p>}
-        <div className="th-meta">
-          {track.status !== 'active' && <span className={`status-pill s-${track.status}`}>{track.status}</span>}
-          {track.review_on && <DueTag day={track.review_on} label="Review" />}
-          {track.next_step && (
-            <span className="th-note" title="Next-step note (edit in Details)">
-              <Icon name="arrow" size={13} /> {track.next_step}
-            </span>
-          )}
-        </div>
+        <span className="dot big" />
+        <h1>{track.name}</h1>
+        {track.status !== 'active' && <span className={`status-pill s-${track.status}`}>{track.status}</span>}
+        <button className="icon-btn" aria-label="Track details" title="Purpose, notes, principles, milestones" onClick={() => openTrack(track.id)}>
+          <Icon name="more" />
+        </button>
       </header>
 
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => setLanes(null)}>
-        {LANES.map(({ lane, title, hint }) => (
-          <LaneList key={lane} lane={lane} title={title} hint={hint} ids={lanes[lane]} byId={byId} onAdd={(t) => insert('tasks', { title: t, track_id: track.id, lane, sort: lanes[lane].length })} onRemove={(id) => confirm('Delete this task?') && remove('tasks', id)} />
+        {LANES.map(({ lane, title }) => (
+          <LaneList
+            key={lane}
+            lane={lane}
+            title={title}
+            ids={lanes[lane]}
+            byId={byId}
+            startOpen={lane === 'now' || lanes.now.length === 0}
+            onAdd={(t) => insert('tasks', { title: t, track_id: track.id, lane, sort: lanes[lane].length })}
+            onRemove={(id) => confirm('Delete this task?') && remove('tasks', id)}
+          />
         ))}
       </DndContext>
 
       {finished.length > 0 && (
-        <div className="done-fold">
-          <button className="link small" onClick={() => setShowDone(!showDone)}>
-            {showDone ? 'Hide' : 'Show'} {finished.length} done
-          </button>
-          {showDone && (
-            <div className="list">
-              {finished.map((t) => (
-                <TaskRow key={t.id} task={t} showTrack={false} />
-              ))}
-            </div>
-          )}
-        </div>
+        <Fold title="Done" count={finished.length}>
+          <div className="list">
+            {finished.map((t) => (
+              <TaskRow key={t.id} task={t} showTrack={false} />
+            ))}
+          </div>
+        </Fold>
       )}
     </div>
   )
 }
 
-function LaneList({ lane, title, hint, ids, byId, onAdd, onRemove }: { lane: Lane; title: string; hint: string; ids: string[]; byId: Map<string, Task>; onAdd: (title: string) => void; onRemove: (id: string) => void }) {
+// A lane is one droppable section; Later starts folded, and its header still accepts drops.
+function LaneList({ lane, title, ids, byId, startOpen, onAdd, onRemove }: { lane: Lane; title: string; ids: string[]; byId: Map<string, Task>; startOpen: boolean; onAdd: (title: string) => void; onRemove: (id: string) => void }) {
   const { setNodeRef, isOver } = useDroppable({ id: lane })
+  const [open, setOpen] = useState(startOpen)
   return (
-    <section className={`lane lane-${lane}`}>
-      <div className="lane-head">
-        <h2>
-          {title}
-          <span className="count">{ids.length}</span>
-        </h2>
-        <span className="muted small">{hint}</span>
-      </div>
-      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        <div ref={setNodeRef} className={`list lane-drop ${isOver ? 'over' : ''} ${ids.length ? '' : 'empty'}`}>
-          {ids.map((id, i) => {
-            const t = byId.get(id)
-            return t ? <SortableTask key={id} task={t} next={lane === 'now' && i === 0} onRemove={() => onRemove(id)} /> : null
-          })}
-          {ids.length === 0 && <p className="lane-empty">Drag tasks here</p>}
-        </div>
-      </SortableContext>
-      <AddLine placeholder={`Add to ${title}`} onAdd={onAdd} />
+    <section ref={setNodeRef} className={`lane lane-${lane} ${isOver ? 'over' : ''}`}>
+      <button className="fold-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name={open ? 'down' : 'right'} size={16} />
+        <h2>{title}</h2>
+        <span className="count">{ids.length}</span>
+      </button>
+      {open && (
+        <>
+          <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+            <div className="list">
+              {ids.map((id, i) => {
+                const t = byId.get(id)
+                return t ? <SortableTask key={id} task={t} next={lane === 'now' && i === 0} onRemove={() => onRemove(id)} /> : null
+              })}
+              {ids.length === 0 && <p className="lane-empty">Nothing here. Drag a task in or add one.</p>}
+            </div>
+          </SortableContext>
+          <AddLine placeholder="Add a task" onAdd={onAdd} />
+        </>
+      )}
     </section>
   )
 }
@@ -176,15 +172,26 @@ function SortableTask({ task, next, onRemove }: { task: Task; next: boolean; onR
   return (
     <div ref={setNodeRef} className={`sortable ${isDragging ? 'dragging' : ''} ${next ? 'is-next' : ''}`} style={{ transform: CSS.Transform.toString(transform), transition }} {...listeners}>
       {next && <span className="next-tag">Next</span>}
-      <span className="grip" aria-hidden="true">
-        <Icon name="grip" size={14} />
-      </span>
       <TaskRow task={task} showTrack={false} onRemove={onRemove} />
     </div>
   )
 }
 
-// ---------- Overview: every track's priorities at a glance ----------
+export function Fold({ title, count, children, startOpen = false }: { title: string; count?: number; children: React.ReactNode; startOpen?: boolean }) {
+  const [open, setOpen] = useState(startOpen)
+  return (
+    <section className="fold">
+      <button className="fold-head" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <Icon name={open ? 'down' : 'right'} size={16} />
+        <h2>{title}</h2>
+        {count !== undefined && <span className="count">{count}</span>}
+      </button>
+      {open && children}
+    </section>
+  )
+}
+
+// ---------- Overview: one line per track, showing its next step ----------
 
 function Overview() {
   const { data } = useStore()
@@ -194,8 +201,7 @@ function Overview() {
   return (
     <div className="panel tasks-panel">
       <header className="track-head">
-        <h1>Priorities</h1>
-        <p className="th-purpose">The top of each active track. Pick a track above to reorder or add.</p>
+        <h1>Next steps</h1>
       </header>
       {AREAS.map(({ area, label }) => {
         const list = live.filter((t) => t.area === area)
@@ -203,24 +209,22 @@ function Overview() {
         return (
           <section key={area} className="ov-area">
             <h2>{label}</h2>
-            {list.map((t) => (
-              <OverviewTrack key={t.id} track={t} />
-            ))}
+            <div className="ov-list">
+              {list.map((t) => (
+                <OverviewTrack key={t.id} track={t} />
+              ))}
+            </div>
           </section>
         )
       })}
       {resting.length > 0 && (
-        <section className="ov-area">
-          <h2>Paused & parked</h2>
-          <div className="chips">
+        <Fold title="Paused & parked" count={resting.length}>
+          <div className="ov-list">
             {resting.map((t) => (
-              <button key={t.id} className="chip-btn" style={{ '--c': t.color } as React.CSSProperties} onClick={() => goTrack(t.id)}>
-                <span className="dot" />
-                {t.name}
-              </button>
+              <OverviewTrack key={t.id} track={t} />
             ))}
           </div>
-        </section>
+        </Fold>
       )}
     </div>
   )
@@ -230,33 +234,17 @@ function OverviewTrack({ track }: { track: Track }) {
   const { data } = useStore()
   const open = openTasks(data.tasks.filter((t) => t.track_id === track.id))
   const now = open.filter((t) => t.lane === 'now').sort(bySort)
+  const next = now[0]
   return (
-    <div className="ov-track" style={{ '--c': track.color } as React.CSSProperties}>
-      <button className="ov-name" onClick={() => goTrack(track.id)}>
-        <span className="dot" />
-        {track.name}
-        <span className="muted small">
-          {now.length} priority · {open.length - now.length} later
-        </span>
-        <Icon name="right" size={16} />
-      </button>
-      {now.length ? (
-        <div className="list">
-          {now.slice(0, 3).map((t, i) => (
-            <div key={t.id} className={i === 0 ? 'is-next' : ''}>
-              {i === 0 && <span className="next-tag">Next</span>}
-              <TaskRow task={t} showTrack={false} />
-            </div>
-          ))}
-          {now.length > 3 && (
-            <button className="link small" onClick={() => goTrack(track.id)}>
-              +{now.length - 3} more
-            </button>
-          )}
-        </div>
-      ) : (
-        <p className="muted small ov-empty">Nothing in Priority yet.</p>
-      )}
-    </div>
+    <button className="ov-row" style={{ '--c': track.color } as React.CSSProperties} onClick={() => goTrack(track.id)}>
+      <span className="dot" />
+      <span className="ov-main">
+        <span className="ov-name">{track.name}</span>
+        <span className="ov-next">{next ? next.title : 'No next step set'}</span>
+      </span>
+      {next && <DueTag day={next.due_on} />}
+      {now.length > 0 && <span className="count">{now.length}</span>}
+      <Icon name="right" size={16} />
+    </button>
   )
 }

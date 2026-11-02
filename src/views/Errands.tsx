@@ -37,7 +37,6 @@ export function Errands() {
           Errands <span className="count">{open.length}</span>
         </h2>
       </div>
-      <p className="muted small panel-sub">Small things that just need a reminder: calls, reading, the bank.</p>
       <form
         className="errand-add"
         onSubmit={(e) => {
@@ -49,18 +48,20 @@ export function Errands() {
           <Icon name="plus" size={16} />
           <input placeholder="Call the bank, read that article…" value={text} onChange={(e) => setText(e.target.value)} />
         </div>
-        <div className="chips">
-          {[
-            ['', 'Anytime'],
-            [today, 'Today'],
-            [addDays(today, 1), 'Tomorrow'],
-          ].map(([v, l]) => (
-            <button key={l} type="button" className={`chip-btn small ${due === v ? 'on' : ''}`} onClick={() => setDue(v)}>
-              {l}
-            </button>
-          ))}
-          <input type="date" className="boxed small" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Pick a date" />
-        </div>
+        {text.trim() && (
+          <div className="chips">
+            {[
+              ['', 'Anytime'],
+              [today, 'Today'],
+              [addDays(today, 1), 'Tomorrow'],
+            ].map(([v, l]) => (
+              <button key={l} type="button" className={`chip-btn small ${due === v ? 'on' : ''}`} onClick={() => setDue(v)}>
+                {l}
+              </button>
+            ))}
+            <input type="date" className="boxed small" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Pick a date" />
+          </div>
+        )}
       </form>
 
       {groups.map(

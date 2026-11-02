@@ -253,3 +253,32 @@ export function byUrgency(a: Task, b: Task) {
   const db = b.due_on ?? '9999'
   return a.priority - b.priority || da.localeCompare(db) || a.sort - b.sort
 }
+
+// Dropdown: a button that opens a small popover; closes on outside click, Esc or after a choice.
+export function Menu({ label, className = '', align = 'left', children }: { label: ReactNode; className?: string; align?: 'left' | 'right'; children: (close: () => void) => ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false)
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+  return (
+    <div className={`menu ${align}`} ref={ref}>
+      <button className={className} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {label}
+      </button>
+      {open && (
+        <div className="menu-pop" role="menu">
+          {children(() => setOpen(false))}
+        </div>
+      )}
+    </div>
+  )
+}

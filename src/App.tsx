@@ -11,13 +11,19 @@ import { Principles } from './views/Principles'
 import { Settings } from './views/Settings'
 import { Login } from './views/Login'
 import { Icon } from './components/icons'
-import { AREAS, Sheet, UICtx, openTasks, sortedTracks, type CaptureDefaults } from './components/ui'
+import { AREAS, Menu, Sheet, UICtx, openTasks, sortedTracks, type CaptureDefaults } from './components/ui'
+import type { Track } from './types'
 import { TaskDetail } from './components/TaskDetail'
 import { Capture } from './components/Capture'
 import { goPage, goTrack, readHash } from './nav'
 
-// On phones the board shows one panel at a time; on wide screens all three sit side by side.
+// The board shows one view at a time: header tabs on wide screens, bottom tabs on phones.
 type Panel = 'tasks' | 'deadlines' | 'errands'
+const VIEWS: { panel: Panel; label: string }[] = [
+  { panel: 'tasks', label: 'Tasks' },
+  { panel: 'deadlines', label: 'Deadlines' },
+  { panel: 'errands', label: 'Errands' },
+]
 
 export function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
@@ -95,27 +101,51 @@ function Shell() {
     <UICtx.Provider value={ui}>
       <div className="app">
         <header className="top">
-          <div className="top-row">
-            <button className="brand" onClick={() => goTrack(null)}>
-              <span className="brand-mark" />
-              Planner
-            </button>
-            <span className="spacer" />
-            <button className="capture-btn" onClick={() => setCapture({ trackId })}>
-              <Icon name="plus" size={16} /> Capture <kbd>N</kbd>
-            </button>
-            <button className={`icon-btn with-badge ${route.page === 'ideas' ? 'on' : ''}`} aria-label="Ideas" title="Ideas" onClick={() => goPage('ideas')}>
-              <Icon name="ideas" />
-              {inbox > 0 && <span className="badge">{inbox}</span>}
-            </button>
-            <button className={`icon-btn ${route.page === 'principles' ? 'on' : ''}`} aria-label="Principles" title="Principles" onClick={() => goPage('principles')}>
-              <Icon name="principles" />
-            </button>
-            <button className={`icon-btn ${route.page === 'settings' ? 'on' : ''}`} aria-label="Settings" title="Settings" onClick={() => goPage('settings')}>
-              <Icon name="settings" />
-            </button>
+          <button className="brand" aria-label="Overview" onClick={() => goTrack(null)}>
+            <span className="brand-mark" />
+          </button>
+          <TrackMenu current={route.page === 'board' ? trackId : undefined} onNew={() => setTrackSheet('new')} />
+          <span className="spacer" />
+          <div className="view-seg" role="tablist">
+            {VIEWS.map((v) => (
+              <button key={v.panel} role="tab" aria-selected={route.page === 'board' && panel === v.panel} className={route.page === 'board' && panel === v.panel ? 'on' : ''} onClick={() => showPanel(v.panel)}>
+                {v.label}
+                {v.panel === 'errands' && errands > 0 && <span className="n">{errands}</span>}
+              </button>
+            ))}
           </div>
-          <TrackBar current={route.page === 'board' ? trackId : undefined} onNew={() => setTrackSheet('new')} />
+          <span className="spacer" />
+          <button className="btn small primary capture-btn" onClick={() => setCapture({ trackId })} title="Capture (N)">
+            <Icon name="plus" size={16} /> Capture
+          </button>
+          <Menu
+            align="right"
+            className={`icon-btn with-badge ${route.page !== 'board' ? 'on' : ''}`}
+            label={
+              <>
+                <Icon name="more" />
+                {inbox > 0 && <span className="badge">{inbox}</span>}
+              </>
+            }
+          >
+            {(close) => (
+              <>
+                {(
+                  [
+                    ['ideas', 'Ideas', 'ideas'],
+                    ['principles', 'Principles', 'principles'],
+                    ['settings', 'Settings', 'settings'],
+                  ] as const
+                ).map(([page, label, icon]) => (
+                  <button key={page} role="menuitem" className={route.page === page ? 'on' : ''} onClick={() => (close(), goPage(page))}>
+                    <Icon name={icon} size={18} />
+                    {label}
+                    {page === 'ideas' && inbox > 0 && <span className="badge">{inbox}</span>}
+                  </button>
+                ))}
+              </>
+            )}
+          </Menu>
         </header>
 
         <main className="main">
@@ -128,9 +158,7 @@ function Shell() {
             <p className="empty">Loading…</p>
           ) : route.page === 'board' ? (
             <div className={`board show-${panel}`}>
-              <TasksPanel trackId={trackId} />
-              <Deadlines trackId={trackId} />
-              <Errands />
+              {panel === 'tasks' ? <TasksPanel trackId={trackId} /> : panel === 'deadlines' ? <Deadlines trackId={trackId} /> : <Errands />}
             </div>
           ) : route.page === 'ideas' ? (
             <Inbox />
@@ -192,38 +220,64 @@ function Shell() {
   )
 }
 
-// Tracks across the top, grouped by area. current: selected track id, null = overview, undefined = another page.
-function TrackBar({ current, onNew }: { current: string | null | undefined; onNew: () => void }) {
+// Track switcher: one dropdown instead of a bar of pills. current: track id, null = overview, undefined = another page.
+function TrackMenu({ current, onNew }: { current: string | null | undefined; onNew: () => void }) {
   const { data } = useStore()
   const tracks = sortedTracks(data.tracks).filter((t) => t.status !== 'done')
   const open = openTasks(data.tasks)
+  const sel = tracks.find((t) => t.id === current)
+  const item = (t: Track, close: () => void) => {
+    const n = open.filter((x) => x.track_id === t.id && x.lane === 'now').length
+    return (
+      <button key={t.id} role="menuitem" className={`s-${t.status} ${current === t.id ? 'on' : ''}`} style={{ '--c': t.color } as React.CSSProperties} onClick={() => (close(), goTrack(t.id))}>
+        <span className="dot" />
+        {t.name}
+        {n > 0 && <span className="n">{n}</span>}
+      </button>
+    )
+  }
   return (
-    <nav className="trackbar" aria-label="Tracks">
-      <button className={`tb-pill tb-home ${current === null ? 'on' : ''}`} onClick={() => goTrack(null)}>
-        Overview
-      </button>
-      {AREAS.map(({ area, label }) => {
-        const list = tracks.filter((t) => t.area === area)
-        if (!list.length) return null
-        return (
-          <div key={area} className="tb-group">
-            <span className="tb-label">{label}</span>
-            {list.map((t) => {
-              const n = open.filter((x) => x.track_id === t.id && x.lane === 'now').length
-              return (
-                <button key={t.id} className={`tb-pill s-${t.status} ${current === t.id ? 'on' : ''}`} style={{ '--c': t.color } as React.CSSProperties} onClick={() => goTrack(t.id)}>
-                  <span className="dot" />
-                  {t.name}
-                  {n > 0 && <span className="n">{n}</span>}
-                </button>
+    <Menu
+      className="track-switch"
+      label={
+        <>
+          <span className="dot" style={{ '--c': sel?.color ?? 'var(--accent)' } as React.CSSProperties} />
+          <span className="ts-name">{sel ? sel.name : current === null ? 'All tracks' : 'Tracks'}</span>
+          <Icon name="down" size={16} />
+        </>
+      }
+    >
+      {(close) => (
+        <>
+          <button role="menuitem" className={current === null ? 'on' : ''} onClick={() => (close(), goTrack(null))}>
+            <span className="dot" style={{ '--c': 'var(--accent)' } as React.CSSProperties} />
+            All tracks
+          </button>
+          {AREAS.map(({ area, label }) => {
+            const list = tracks.filter((t) => t.area === area && t.status === 'active')
+            return (
+              list.length > 0 && (
+                <div key={area} className="menu-group">
+                  <span className="menu-label">{label}</span>
+                  {list.map((t) => item(t, close))}
+                </div>
               )
-            })}
+            )
+          })}
+          {tracks.some((t) => t.status !== 'active') && (
+            <div className="menu-group">
+              <span className="menu-label">Paused & parked</span>
+              {tracks.filter((t) => t.status !== 'active').map((t) => item(t, close))}
+            </div>
+          )}
+          <div className="menu-group">
+            <button role="menuitem" className="muted" onClick={() => (close(), onNew())}>
+              <Icon name="plus" size={16} />
+              New track
+            </button>
           </div>
-        )
-      })}
-      <button className="tb-pill tb-add" aria-label="New track" title="New track" onClick={onNew}>
-        <Icon name="plus" size={14} />
-      </button>
-    </nav>
+        </>
+      )}
+    </Menu>
   )
 }
