@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { fmtDay, relative, todayIso } from '../dates'
 import { useStore } from '../store'
-import type { Task, Track } from '../types'
+import type { Area, Task, Track } from '../types'
 import { Icon } from './icons'
 
 // ---------- App-level UI actions (task drawer, capture sheet) ----------
@@ -14,9 +14,10 @@ export interface CaptureDefaults {
 interface UI {
   openTask: (id: string) => void
   openCapture: (d?: CaptureDefaults) => void
+  openTrack: (id: string | null) => void // track details sheet; null = new track
 }
 
-export const UICtx = createContext<UI>({ openTask: () => {}, openCapture: () => {} })
+export const UICtx = createContext<UI>({ openTask: () => {}, openCapture: () => {}, openTrack: () => {} })
 export const useUI = () => useContext(UICtx)
 
 // ---------- Inputs ----------
@@ -75,6 +76,12 @@ export function Segmented<T extends string | number>({ value, options, onChange,
     </div>
   )
 }
+
+export const AREAS: { area: Area; label: string }[] = [
+  { area: 'filmmaking', label: 'Filmmaking' },
+  { area: 'business', label: 'Business' },
+  { area: 'personal', label: 'Personal' },
+]
 
 export const sortedTracks = (tracks: Track[]) => tracks.slice().sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || a.sort - b.sort)
 const STATUS_ORDER = ['active', 'paused', 'parked', 'done']

@@ -1,5 +1,7 @@
 export type TrackStatus = 'active' | 'paused' | 'parked' | 'done'
 export type TaskStatus = 'todo' | 'doing' | 'waiting' | 'done' | 'dropped'
+export type Area = 'filmmaking' | 'business' | 'personal'
+export type Lane = 'now' | 'later'
 export type IdeaStatus = 'inbox' | 'kept' | 'parked' | 'converted' | 'dropped'
 
 export interface Track {
@@ -8,6 +10,7 @@ export interface Track {
   name: string
   color: string
   status: TrackStatus
+  area: Area
   purpose: string | null
   next_step: string | null
   review_on: string | null
@@ -48,6 +51,7 @@ export interface Task {
   start_on: string | null
   due_on: string | null
   priority: number
+  lane: Lane
   checklist: CheckItem[]
   done_at: string | null
   sort: number

@@ -12,7 +12,8 @@ Always run `snapshot` first so you work from current state (he also edits in the
 ```bash
 npm run planner -- snapshot                                   # open tasks, inbox, tracks, principles, milestones, next 7 days
 npm run planner -- idea "text" --track screenplays            # source=claude, lands in the Ideas inbox
-npm run planner -- task "title" --track priyamvada --due 2026-11-07 --priority 1 --check "a|b|c"
+npm run planner -- task "title" --track priyamvada --lane now --due 2026-11-07 --check "a|b|c"
+npm run planner -- task "Visit the bank" --due 2026-11-04                # no --track = an errand
 npm run planner -- done <task id or prefix>
 npm run planner -- update tasks <id> '{"status":"waiting","waiting_on":"composer"}'
 npm run planner -- insert principles '{"track":"monastery","title":"...","body":"..."}'
@@ -22,6 +23,9 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
 - `"track": "<slug>"` / `"focus_track": "<slug>"` are translated to ids. Slugs: priyamvada, screenplays, monastery, youtube, airytek-dashboard, income, comedy-shorts (check `snapshot` for current ones).
 - For long JSON, write it to a scratch file and pass `@path/to/file.json`.
 - Task statuses: todo, doing, waiting, done, dropped. Priority 1 = high, 2 = normal, 3 = low.
+- Each track task sits in a lane: `now` (shown as Priority; the top one is the next step) or `later` (default).
+  Order within a lane is `sort`. Tasks with no track are errands (small reminders, own panel).
+- Tracks have an `area`: filmmaking, business or personal (groups the track bar).
 - Checklists are `[{ "text", "done" }]` on the task; blocks are `[{ "time", "label", "done" }]` on the day.
 - `update` merges into the row, but `checklist`/`blocks` replace the whole array: read, modify, write back.
 - After writing, tell him in plain words what changed. The portal updates live.

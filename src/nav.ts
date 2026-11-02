@@ -1,6 +1,20 @@
-export const VIEWS = ['today', 'tracks', 'ideas', 'timeline', 'principles', 'settings'] as const
-export type View = (typeof VIEWS)[number]
+// Hash routes: #  (overview), #t/<track id>, #ideas, #principles, #settings.
+// Anything else (e.g. an auth callback) falls back to the overview.
+export type Page = 'ideas' | 'principles' | 'settings'
+export type Route = { page: 'board'; trackId: string | null } | { page: Page }
 
-export const go = (view: View, id: string | null = null) => {
-  location.hash = id ? `${view}/${id}` : view
+const PAGES: Page[] = ['ideas', 'principles', 'settings']
+
+export function readHash(): Route {
+  const [a, b] = location.hash.slice(1).split('/')
+  if (a === 't' && b) return { page: 'board', trackId: b }
+  if (PAGES.includes(a as Page)) return { page: a as Page }
+  return { page: 'board', trackId: null }
+}
+
+export const goTrack = (id: string | null) => {
+  location.hash = id ? `t/${id}` : ''
+}
+export const goPage = (page: Page) => {
+  location.hash = page
 }

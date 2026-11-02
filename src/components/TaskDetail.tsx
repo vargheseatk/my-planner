@@ -29,6 +29,9 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
       <EditText multiline className="detail-title" value={task.title} onSave={(title) => title.trim() && set({ title: title.trim() })} />
 
       <Segmented value={task.status === 'dropped' ? 'todo' : task.status} options={STATUS} onChange={(status) => set({ status })} />
+      {task.track_id && (
+        <Segmented small value={task.lane} options={[{ value: 'now', label: 'Priority' }, { value: 'later', label: 'Later' }]} onChange={(lane) => set({ lane, sort: -1 })} />
+      )}
       {task.status === 'waiting' && (
         <div className="field">
           <label>Waiting on</label>
@@ -65,7 +68,7 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
       </div>
 
       <div className="field">
-        <label>Track</label>
+        <label>Track{!task.track_id && <span className="muted">· none = errand</span>}</label>
         <TrackChips value={task.track_id} onChange={(track_id) => set({ track_id })} onlyLive />
       </div>
 

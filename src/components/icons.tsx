@@ -20,6 +20,7 @@ const paths = {
   diamond: 'M12 3l9 9-9 9-9-9 9-9z',
   arrow: 'M5 12h14M13 6l6 6-6 6',
   quote: 'M7 7h4v4c0 3-1.5 5-4 6M14 7h4v4c0 3-1.5 5-4 6',
+  grip: 'M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01',
   moon: 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z',
 } as const
 

@@ -4,7 +4,8 @@
 //   npm run planner -- snapshot                       everything open, as JSON
 //   npm run planner -- idea "text" [--track slug]
 //   npm run planner -- task "title" [--track slug] [--due 2026-11-15] [--start 2026-11-08]
-//                          [--priority 1] [--check "step a|step b"] [--notes "..."] [--waiting "who"]
+//                          [--lane now|later] [--priority 1] [--check "step a|step b"] [--notes "..."] [--waiting "who"]
+//                          (no --track = an errand: a small reminder outside any track)
 //   npm run planner -- done <task id or id prefix>
 //   npm run planner -- insert <table> <json | @file.json>   (object or array)
 //   npm run planner -- update <table> <id> <json | @file.json>
@@ -142,6 +143,7 @@ const commands = {
       ...(flags.track && { track: flags.track }),
       ...(flags.due && { due_on: flags.due }),
       ...(flags.start && { start_on: flags.start }),
+      ...(flags.lane && { lane: flags.lane }),
       ...(flags.priority && { priority: Number(flags.priority) }),
       ...(flags.notes && { notes: flags.notes }),
       ...(flags.waiting && { waiting_on: flags.waiting, status: 'waiting' }),

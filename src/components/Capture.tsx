@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { addDays, todayIso } from '../dates'
 import { useStore } from '../store'
+import type { Lane } from '../types'
 import { Segmented, TrackChips, type CaptureDefaults } from './ui'
 
-// Quick capture: an idea for the inbox, or a task straight into a track.
+// Quick capture: an idea for the inbox, a task straight into a track, or (no track) an errand.
 export function Capture({ defaults, onDone }: { defaults: CaptureDefaults; onDone: () => void }) {
   const { insert } = useStore()
   const [kind, setKind] = useState<'idea' | 'task'>(defaults.kind ?? 'idea')
   const [text, setText] = useState('')
   const [trackId, setTrackId] = useState<string | null>(defaults.trackId ?? null)
   const [due, setDue] = useState('')
+  const [lane, setLane] = useState<Lane>('now')
   const [busy, setBusy] = useState(false)
 
   const save = async () => {
@@ -19,7 +21,7 @@ export function Capture({ defaults, onDone }: { defaults: CaptureDefaults; onDon
     const ok =
       kind === 'idea'
         ? await insert('ideas', { body, track_id: trackId })
-        : await insert('tasks', { title: body, track_id: trackId, due_on: due || null })
+        : await insert('tasks', { title: body, track_id: trackId, due_on: due || null, lane })
     setBusy(false)
     if (ok) onDone()
   }
@@ -52,9 +54,15 @@ export function Capture({ defaults, onDone }: { defaults: CaptureDefaults; onDon
         }}
       />
       <div className="field">
-        <label>Track</label>
+        <label>Track{kind === 'task' && !trackId && <span className="muted">· none = errand</span>}</label>
         <TrackChips value={trackId} onChange={setTrackId} onlyLive />
       </div>
+      {kind === 'task' && trackId && (
+        <div className="field">
+          <label>Lane</label>
+          <Segmented small value={lane} options={[{ value: 'now', label: 'Priority' }, { value: 'later', label: 'Later' }]} onChange={setLane} />
+        </div>
+      )}
       {kind === 'task' && (
         <div className="field">
           <label>Due</label>
@@ -74,7 +82,7 @@ export function Capture({ defaults, onDone }: { defaults: CaptureDefaults; onDon
         </div>
       )}
       <button className="btn primary wide" disabled={!text.trim() || busy}>
-        {kind === 'idea' ? 'Save to Ideas' : 'Add task'}
+        {kind === 'idea' ? 'Save to Ideas' : trackId ? 'Add task' : 'Add errand'}
       </button>
       <p className="hint">Ctrl + Enter to save · Esc to close</p>
     </form>

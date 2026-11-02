@@ -1,4 +1,4 @@
-import { go } from '../nav'
+import { goTrack } from '../nav'
 import { useStore } from '../store'
 import type { Principle } from '../types'
 import { Icon } from '../components/icons'
@@ -29,7 +29,7 @@ export function Principles() {
         <Section
           key={track.id}
           title={
-            <button className="link-plain track-title" style={{ '--c': track.color } as React.CSSProperties} onClick={() => go('tracks', track.id)}>
+            <button className="link-plain track-title" style={{ '--c': track.color } as React.CSSProperties} onClick={() => goTrack(track.id)}>
               <span className="dot" />
               {track.name}
             </button>

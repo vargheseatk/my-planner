@@ -14,6 +14,8 @@ interface Store {
   insert: <T extends TableName>(table: T, row: Partial<Data[T][number]>) => Promise<Data[T][number] | null>
   update: <T extends TableName>(table: T, id: string, patch: Partial<Data[T][number]>) => Promise<void>
   remove: (table: TableName, id: string) => Promise<void>
+  // Write several rows' changes at once (e.g. new sort order after a drag).
+  updateMany: <T extends TableName>(table: T, patches: { id: string; patch: Partial<Data[T][number]> }[]) => Promise<void>
   clearError: () => void
 }
 
@@ -87,6 +89,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.from(table).update(patch as never).eq('id', id)
       if (error) {
         setError(error.message)
+        load()
+      }
+    },
+    async updateMany(table, patches) {
+      const byId = new Map(patches.map((p) => [p.id, p.patch]))
+      patchLocal(table, (rows) => rows.map((r) => (byId.has(r.id) ? { ...r, ...byId.get(r.id) } : r)))
+      const results = await Promise.all(patches.map((p) => supabase.from(table).update(p.patch as never).eq('id', p.id)))
+      const failed = results.find((r) => r.error)
+      if (failed) {
+        setError(failed.error!.message)
         load()
       }
     },
