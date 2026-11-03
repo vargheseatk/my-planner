@@ -8,6 +8,7 @@ import { Errands } from './views/Errands'
 import { NewTrack, TrackDetails } from './views/Tracks'
 import { Inbox } from './views/Inbox'
 import { Principles } from './views/Principles'
+import { Self } from './views/Self'
 import { Settings } from './views/Settings'
 import { Login } from './views/Login'
 import { Icon } from './components/icons'
@@ -133,6 +134,7 @@ function Shell() {
                 {(
                   [
                     ['ideas', 'Ideas', 'ideas'],
+                    ['self', 'Know myself', 'self'],
                     ['principles', 'Principles', 'principles'],
                     ['settings', 'Settings', 'settings'],
                   ] as const
@@ -162,6 +164,8 @@ function Shell() {
             </div>
           ) : route.page === 'ideas' ? (
             <Inbox />
+          ) : route.page === 'self' ? (
+            <Self />
           ) : route.page === 'principles' ? (
             <Principles />
           ) : (

@@ -27,6 +27,18 @@ export interface Principle {
   sort: number
 }
 
+export type BeliefKind = 'belief' | 'tension'
+
+export interface Belief {
+  id: string
+  kind: BeliefKind
+  title: string
+  body: string | null
+  in_practice: string | null
+  sort: number
+  created_at: string
+}
+
 export interface Idea {
   id: string
   body: string
@@ -91,6 +103,7 @@ export interface Data {
   tasks: Task[]
   milestones: Milestone[]
   days: Day[]
+  beliefs: Belief[]
 }
 
 export type TableName = keyof Data

@@ -1,9 +1,9 @@
-// Hash routes: #  (overview), #t/<track id>, #ideas, #principles, #settings.
+// Hash routes: #  (overview), #t/<track id>, #ideas, #principles, #self, #settings.
 // Anything else (e.g. an auth callback) falls back to the overview.
-export type Page = 'ideas' | 'principles' | 'settings'
+export type Page = 'ideas' | 'principles' | 'self' | 'settings'
 export type Route = { page: 'board'; trackId: string | null } | { page: Page }
 
-const PAGES: Page[] = ['ideas', 'principles', 'settings']
+const PAGES: Page[] = ['ideas', 'principles', 'self', 'settings']
 
 export function readHash(): Route {
   const [a, b] = location.hash.slice(1).split('/')

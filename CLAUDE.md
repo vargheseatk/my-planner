@@ -26,6 +26,9 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
 - Each track task sits in a lane: `now` (shown as Priority; the top one is the next step) or `later` (default).
   Order within a lane is `sort`. Tasks with no track are errands (small reminders, own panel).
 - Tracks have an `area`: filmmaking, business or personal (groups the track bar).
+- `beliefs` is the "Know myself" page: worldviews that actually drive his actions. `kind` is `belief`
+  (noticed, holds) or `tension` (still going back and forth). Fields: title, body (his words), in_practice
+  (how it shows up). Keep his own phrasing; tidy it, don't rewrite it into slogans.
 - Checklists are `[{ "text", "done" }]` on the task; blocks are `[{ "time", "label", "done" }]` on the day.
 - `update` merges into the row, but `checklist`/`blocks` replace the whole array: read, modify, write back.
 - After writing, tell him in plain words what changed. The portal updates live.
@@ -33,7 +36,7 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
 ## Data model
 
 `supabase/migrations/*.sql` is the source of truth. Tables: tracks, principles (track_id null = global),
-ideas, tasks, milestones, days. Every row has `owner`; RLS restricts all access to `owner = auth.uid()`.
+ideas, tasks, milestones, days, beliefs. Every row has `owner`; RLS restricts all access to `owner = auth.uid()`.
 
 ## Secrets
 
