@@ -49,6 +49,7 @@ export interface Outreach {
   draft: string | null
   platform: string | null
   status: OutreachStatus
+  top: boolean
   sent_on: string | null
   notes: string | null
   sort: number

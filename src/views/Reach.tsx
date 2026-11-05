@@ -96,6 +96,7 @@ function ReachCard({ o, grip, open, onToggle }: { o: Outreach; grip: React.React
     <div className={`reach ${open ? 'open' : ''}`}>
       <div className="reach-top">
       {grip}
+      <button className={`top-dot ${o.top ? 'on' : ''}`} aria-pressed={o.top} aria-label={o.top ? 'Unmark top reach-out' : 'Mark as top reach-out'} title={o.top ? 'Top reach-out' : 'Mark as top'} onClick={() => set({ top: !o.top })} />
       <button className="reach-head" aria-expanded={open} onClick={onToggle}>
         <span className="reach-who">
           <span className="reach-name">{o.name}</span>

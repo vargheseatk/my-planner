@@ -31,7 +31,7 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
   (how it shows up). Keep his own phrasing; tidy it, don't rewrite it into slogans.
 - `outreach` is the Reach out tab: people to contact. Fields: name, company, questions (what he wants to
   know from them), draft (the message), platform (LinkedIn, Email, WhatsApp, Instagram, X, Call, or free text),
-  status draft | sent | replied | done, sent_on, notes (what came of it).
+  status draft | sent | replied | done, sent_on, notes (what came of it), top (bool: green circle = top reach-out to follow up).
   `npm run planner -- insert outreach '{"name":"...","company":"...","questions":"...","draft":"...","platform":"LinkedIn"}'`
 - Checklists are `[{ "text", "done" }]` on the task; blocks are `[{ "time", "label", "done" }]` on the day.
 - `update` merges into the row, but `checklist`/`blocks` replace the whole array: read, modify, write back.

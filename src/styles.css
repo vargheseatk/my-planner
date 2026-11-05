@@ -292,6 +292,10 @@ kbd { font: 500 .7rem var(--sans); border: 1px solid var(--line-strong); border-
 .ov-list .sortable:last-child .ov-item, .ov-item:last-child { border-bottom: 0; }
 .ov-item .ov-row { flex: 1; min-width: 0; border-bottom: 0; padding-left: .3rem; }
 .reach-top { display: flex; align-items: center; padding-left: .6rem; background: var(--surface); }
+.top-dot { flex: none; width: 1rem; height: 1rem; margin: 0 .15rem 0 .25rem; padding: 0; border-radius: 50%; border: 1.5px solid var(--line-strong); background: transparent; cursor: pointer; position: relative; }
+.top-dot::after { content: ''; position: absolute; inset: -.55rem; } /* bigger tap target */
+.top-dot:hover { border-color: var(--ok); }
+.top-dot.on { background: var(--ok); border-color: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent); }
 .reach-top .reach-head { flex: 1; min-width: 0; padding-left: .3rem; }
 .reach.open .reach-top { background: var(--surface-2); }
 .belief { display: flex; flex-wrap: wrap; align-items: center; background: var(--surface); }
