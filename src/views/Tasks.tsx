@@ -1,12 +1,8 @@
 import { useRef, useState } from 'react'
 import {
   DndContext,
-  MouseSensor,
-  TouchSensor,
   closestCorners,
   useDroppable,
-  useSensor,
-  useSensors,
   type DragEndEvent,
   type DragOverEvent,
   type UniqueIdentifier,
@@ -18,6 +14,7 @@ import { useStore } from '../store'
 import type { Lane, Task, Track } from '../types'
 import { Icon } from '../components/icons'
 import { AREAS, AddLine, DueTag, TaskRow, openTasks, sortedTracks, useUI } from '../components/ui'
+import { Grip, SortableList, sortPatches, useDragSensors } from '../components/Sortable'
 
 const LANES: { lane: Lane; title: string }[] = [
   { lane: 'now', title: 'Priority' },
@@ -53,10 +50,7 @@ function TrackLanes({ track }: { track: Track }) {
   const lanes = drag ?? fromData()
   const finished = tasks.filter((t) => t.status === 'done').sort((a, b) => (b.done_at ?? '').localeCompare(a.done_at ?? ''))
 
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
-  )
+  const sensors = useDragSensors()
   const laneOf = (l: Lanes, id: UniqueIdentifier): Lane | null => (id === 'now' || id === 'later' ? id : l.now.includes(String(id)) ? 'now' : l.later.includes(String(id)) ? 'later' : null)
 
   // Crossing into the other lane: move the card there right away so the list opens a gap.
@@ -168,11 +162,11 @@ function LaneList({ lane, title, ids, byId, startOpen, onAdd, onRemove }: { lane
 }
 
 function SortableTask({ task, next, onRemove }: { task: Task; next: boolean; onRemove: () => void }) {
-  const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
   return (
-    <div ref={setNodeRef} className={`sortable ${isDragging ? 'dragging' : ''} ${next ? 'is-next' : ''}`} style={{ transform: CSS.Transform.toString(transform), transition }} {...listeners}>
+    <div ref={setNodeRef} className={`sortable ${isDragging ? 'dragging' : ''} ${next ? 'is-next' : ''}`} style={{ transform: CSS.Translate.toString(transform), transition }}>
       {next && <span className="next-tag">Next</span>}
-      <TaskRow task={task} showTrack={false} onRemove={onRemove} />
+      <TaskRow task={task} showTrack={false} onRemove={onRemove} grip={<Grip ref={setActivatorNodeRef} {...attributes} {...listeners} />} />
     </div>
   )
 }
@@ -194,7 +188,7 @@ export function Fold({ title, count, children, startOpen = false }: { title: str
 // ---------- Overview: one line per track, showing its next step ----------
 
 function Overview() {
-  const { data } = useStore()
+  const { data, updateMany } = useStore()
   const tracks = sortedTracks(data.tracks).filter((t) => t.status !== 'done')
   const live = tracks.filter((t) => t.status === 'active')
   const resting = tracks.filter((t) => t.status !== 'active')
@@ -209,11 +203,9 @@ function Overview() {
         return (
           <section key={area} className="ov-area">
             <h2>{label}</h2>
-            <div className="ov-list">
-              {list.map((t) => (
-                <OverviewTrack key={t.id} track={t} />
-              ))}
-            </div>
+            <SortableList className="ov-list" items={list} id={(t) => t.id} onReorder={(next) => updateMany('tracks', sortPatches(next))}>
+              {(t, grip) => <OverviewTrack track={t} grip={grip} />}
+            </SortableList>
           </section>
         )
       })}
@@ -230,12 +222,14 @@ function Overview() {
   )
 }
 
-function OverviewTrack({ track }: { track: Track }) {
+function OverviewTrack({ track, grip }: { track: Track; grip?: React.ReactNode }) {
   const { data } = useStore()
   const open = openTasks(data.tasks.filter((t) => t.track_id === track.id))
   const now = open.filter((t) => t.lane === 'now').sort(bySort)
   const next = now[0]
   return (
+    <div className="ov-item">
+    {grip}
     <button className="ov-row" style={{ '--c': track.color } as React.CSSProperties} onClick={() => goTrack(track.id)}>
       <span className="dot" />
       <span className="ov-main">
@@ -246,5 +240,6 @@ function OverviewTrack({ track }: { track: Track }) {
       {now.length > 0 && <span className="count">{now.length}</span>}
       <Icon name="right" size={16} />
     </button>
+    </div>
   )
 }

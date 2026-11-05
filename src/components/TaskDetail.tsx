@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import type { CheckItem, Task, TaskStatus } from '../types'
 import { Icon } from './icons'
 import { EditText, Segmented, TrackChips } from './ui'
+import { SortableList } from './Sortable'
 
 const STATUS: { value: TaskStatus; label: string }[] = [
   { value: 'todo', label: 'To do' },
@@ -48,9 +49,10 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
             <span style={{ width: `${(doneCount / list.length) * 100}%` }} />
           </div>
         )}
-        <ul className="checklist">
-          {list.map((c, i) => (
-            <li key={i} className={c.done ? 'on' : ''}>
+        <SortableList className="checklist" items={list} id={(_, i) => `c${i}`} onReorder={setList}>
+          {(c, grip, i) => (
+            <div className={`check-item ${c.done ? 'on' : ''}`}>
+              {grip}
               <button className={`tick small ${c.done ? 'on' : ''}`} aria-label="Toggle item" onClick={() => setList(list.map((x, j) => (j === i ? { ...x, done: !x.done } : x)))}>
                 <Icon name="check" size={12} />
               </button>
@@ -58,9 +60,9 @@ export function TaskDetail({ task, onClose }: { task: Task; onClose: () => void 
               <button className="icon-btn ghost" aria-label="Remove item" onClick={() => setList(list.filter((_, j) => j !== i))}>
                 <Icon name="x" size={14} />
               </button>
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+        </SortableList>
         <div className="addline">
           <Icon name="plus" size={16} />
           <input className="edit" placeholder="Add a step" value={newItem} onChange={(e) => setNewItem(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addItem()} onBlur={addItem} />

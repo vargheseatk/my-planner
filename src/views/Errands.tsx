@@ -4,20 +4,21 @@ import { useStore } from '../store'
 import type { Task } from '../types'
 import { Icon } from '../components/icons'
 import { TaskRow, openTasks } from '../components/ui'
+import { SortableList, sortPatches } from '../components/Sortable'
 
 const byDue = (a: Task, b: Task) => a.due_on!.localeCompare(b.due_on!) || a.sort - b.sort
 const bySort = (a: Task, b: Task) => a.sort - b.sort || a.created_at.localeCompare(b.created_at)
 
 // Errands are tasks with no track: calls, reading, bank visits. They only need a reminder.
 export function Errands() {
-  const { data, insert } = useStore()
+  const { data, insert, updateMany } = useStore()
   const [text, setText] = useState('')
   const [due, setDue] = useState('')
   const today = todayIso()
   const errands = data.tasks.filter((t) => !t.track_id)
   const open = openTasks(errands)
   const groups: [string, Task[]][] = [
-    ['Today', open.filter((t) => t.due_on && t.due_on <= today).sort(byDue)],
+    ['Today', open.filter((t) => t.due_on && t.due_on <= today).sort(bySort)],
     ['Coming up', open.filter((t) => t.due_on && t.due_on > today).sort(byDue)],
     ['Anytime', open.filter((t) => !t.due_on).sort(bySort)],
   ]
@@ -69,11 +70,17 @@ export function Errands() {
           list.length > 0 && (
             <section key={label} className="errand-group">
               <h3 className="mini-head">{label}</h3>
-              <div className="list">
-                {list.map((t) => (
-                  <TaskRow key={t.id} task={t} showTrack={false} />
-                ))}
-              </div>
+              {label === 'Coming up' ? (
+                <div className="list">
+                  {list.map((t) => (
+                    <TaskRow key={t.id} task={t} showTrack={false} />
+                  ))}
+                </div>
+              ) : (
+                <SortableList className="list" items={list} id={(t) => t.id} onReorder={(next) => updateMany('tasks', sortPatches(next))}>
+                  {(t, grip) => <TaskRow task={t} showTrack={false} grip={grip} />}
+                </SortableList>
+              )}
             </section>
           ),
       )}

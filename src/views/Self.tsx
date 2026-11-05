@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import type { Belief, BeliefKind } from '../types'
 import { Icon } from '../components/icons'
 import { AddLine, EditText, Section } from '../components/ui'
+import { SortableList, sortPatches } from '../components/Sortable'
 
 // Know myself: worldviews that actually drive what he does, noticed rather than decided,
 // so the latest thing he read doesn't get mistaken for what he believes.
@@ -12,7 +13,7 @@ const KINDS: { kind: BeliefKind; title: string; add: string }[] = [
 ]
 
 export function Self() {
-  const { data, insert } = useStore()
+  const { data, insert, updateMany } = useStore()
   return (
     <div className="page narrow">
       <header className="page-head">
@@ -23,11 +24,9 @@ export function Self() {
         const list = data.beliefs.filter((b) => b.kind === kind).sort((a, b) => a.sort - b.sort || a.created_at.localeCompare(b.created_at))
         return (
           <Section key={kind} title={title} count={list.length}>
-            <div className="beliefs">
-              {list.map((b) => (
-                <BeliefCard key={b.id} b={b} />
-              ))}
-            </div>
+            <SortableList className="beliefs" items={list} id={(b) => b.id} onReorder={(next) => updateMany('beliefs', sortPatches(next))}>
+              {(b, grip) => <BeliefCard b={b} grip={grip} />}
+            </SortableList>
             <AddLine placeholder={add} onAdd={(t) => insert('beliefs', { kind, title: t, sort: list.length })} />
           </Section>
         )
@@ -36,11 +35,12 @@ export function Self() {
   )
 }
 
-function BeliefCard({ b }: { b: Belief }) {
+function BeliefCard({ b, grip }: { b: Belief; grip: React.ReactNode }) {
   const { update, remove } = useStore()
   const [open, setOpen] = useState(false)
   return (
     <div className={`belief ${b.kind} ${open ? 'open' : ''}`}>
+      {!open && grip}
       {!open ? (
         <button className="belief-head" aria-expanded={false} onClick={() => setOpen(true)}>
           <span className="belief-title">{b.title}</span>

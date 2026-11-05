@@ -3,9 +3,11 @@ import { useStore } from '../store'
 import type { Principle } from '../types'
 import { Icon } from '../components/icons'
 import { AddLine, EditText, Section, sortedTracks } from '../components/ui'
+import { SortableList, sortPatches } from '../components/Sortable'
 
 export function Principles() {
-  const { data, insert } = useStore()
+  const { data, insert, updateMany } = useStore()
+  const reorder = (next: Principle[]) => updateMany('principles', sortPatches(next))
   const global = data.principles.filter((p) => p.track_id === null).sort((a, b) => a.sort - b.sort)
   const perTrack = sortedTracks(data.tracks)
     .map((t) => ({ track: t, items: data.principles.filter((p) => p.track_id === t.id).sort((a, b) => a.sort - b.sort) }))
@@ -18,11 +20,9 @@ export function Principles() {
         <p className="lede">How you choose. One of these shows on Today each day, along with your focus track's own rules.</p>
       </header>
       <Section title="Life-wide">
-        <div className="principles">
-          {global.map((p) => (
-            <PrincipleCard key={p.id} p={p} />
-          ))}
-        </div>
+        <SortableList className="principles" items={global} id={(p) => p.id} onReorder={reorder}>
+          {(p, grip) => <PrincipleCard p={p} grip={grip} />}
+        </SortableList>
         <AddLine placeholder="Add a life-wide principle" onAdd={(title) => insert('principles', { title, track_id: null, sort: global.length })} />
       </Section>
       {perTrack.map(({ track, items }) => (
@@ -35,21 +35,20 @@ export function Principles() {
             </button>
           }
         >
-          <div className="principles">
-            {items.map((p) => (
-              <PrincipleCard key={p.id} p={p} color={track.color} />
-            ))}
-          </div>
+          <SortableList className="principles" items={items} id={(p) => p.id} onReorder={reorder}>
+            {(p, grip) => <PrincipleCard p={p} color={track.color} grip={grip} />}
+          </SortableList>
         </Section>
       ))}
     </div>
   )
 }
 
-function PrincipleCard({ p, color }: { p: Principle; color?: string }) {
+function PrincipleCard({ p, color, grip }: { p: Principle; color?: string; grip?: React.ReactNode }) {
   const { update, remove } = useStore()
   return (
     <div className={`principle-full ${p.active ? '' : 'off'}`} style={{ '--c': color ?? 'var(--accent)' } as React.CSSProperties}>
+      {grip}
       <EditText className="pf-title" value={p.title} onSave={(title) => title && update('principles', p.id, { title })} />
       <EditText multiline className="pf-body" value={p.body} placeholder="Why it matters, how to apply it" onSave={(body) => update('principles', p.id, { body: body || null })} />
       <div className="pf-actions">

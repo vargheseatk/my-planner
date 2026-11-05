@@ -5,6 +5,7 @@ import type { Outreach, OutreachStatus } from '../types'
 import { Icon } from '../components/icons'
 import { EditText } from '../components/ui'
 import { Fold } from './Tasks'
+import { SortableList, sortPatches } from '../components/Sortable'
 
 const PLATFORMS = ['LinkedIn', 'Email', 'WhatsApp', 'Instagram', 'X', 'Call']
 const STATUSES: { value: OutreachStatus; label: string }[] = [
@@ -17,13 +18,13 @@ const bySort = (a: Outreach, b: Outreach) => a.sort - b.sort || a.created_at.loc
 
 // Reach out: people to contact, what to ask them, the message and where it goes.
 export function Reach() {
-  const { data, insert } = useStore()
+  const { data, insert, updateMany } = useStore()
   const [name, setName] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
   const all = data.outreach
   const groups: [string, Outreach[]][] = [
     ['To send', all.filter((o) => o.status === 'draft').sort(bySort)],
-    ['Waiting to hear back', all.filter((o) => o.status === 'sent').sort((a, b) => (a.sent_on ?? '').localeCompare(b.sent_on ?? ''))],
+    ['Waiting to hear back', all.filter((o) => o.status === 'sent').sort(bySort)],
     ['Replied', all.filter((o) => o.status === 'replied').sort(bySort)],
   ]
   const done = all.filter((o) => o.status === 'done')
@@ -37,11 +38,9 @@ export function Reach() {
   }
 
   const list = (rows: Outreach[]) => (
-    <div className="reach-list">
-      {rows.map((o) => (
-        <ReachCard key={o.id} o={o} open={openId === o.id} onToggle={() => setOpenId(openId === o.id ? null : o.id)} />
-      ))}
-    </div>
+    <SortableList className="reach-list" items={rows} id={(o) => o.id} onReorder={(next) => updateMany('outreach', sortPatches(next))}>
+      {(o, grip) => <ReachCard o={o} grip={grip} open={openId === o.id} onToggle={() => setOpenId(openId === o.id ? null : o.id)} />}
+    </SortableList>
   )
 
   return (
@@ -82,7 +81,7 @@ export function Reach() {
   )
 }
 
-function ReachCard({ o, open, onToggle }: { o: Outreach; open: boolean; onToggle: () => void }) {
+function ReachCard({ o, grip, open, onToggle }: { o: Outreach; grip: React.ReactNode; open: boolean; onToggle: () => void }) {
   const { update, remove } = useStore()
   const [copied, setCopied] = useState(false)
   const set = (patch: Partial<Outreach>) => update('outreach', o.id, patch)
@@ -95,6 +94,8 @@ function ReachCard({ o, open, onToggle }: { o: Outreach; open: boolean; onToggle
 
   return (
     <div className={`reach ${open ? 'open' : ''}`}>
+      <div className="reach-top">
+      {grip}
       <button className="reach-head" aria-expanded={open} onClick={onToggle}>
         <span className="reach-who">
           <span className="reach-name">{o.name}</span>
@@ -103,6 +104,7 @@ function ReachCard({ o, open, onToggle }: { o: Outreach; open: boolean; onToggle
         {o.platform && <span className="pill">{o.platform}</span>}
         <Icon name="down" size={16} />
       </button>
+      </div>
       {open && (
         <div className="reach-body">
           <div className="field-row">

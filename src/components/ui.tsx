@@ -131,7 +131,7 @@ export function DueTag({ day, label }: { day: string | null; label?: string }) {
 
 // ---------- Task row ----------
 
-export function TaskRow({ task, showTrack = true, onRemove }: { task: Task; showTrack?: boolean; onRemove?: () => void }) {
+export function TaskRow({ task, showTrack = true, onRemove, grip }: { task: Task; showTrack?: boolean; onRemove?: () => void; grip?: ReactNode }) {
   const { data, update } = useStore()
   const { openTask } = useUI()
   const track = data.tracks.find((t) => t.id === task.track_id)
@@ -142,6 +142,7 @@ export function TaskRow({ task, showTrack = true, onRemove }: { task: Task; show
 
   return (
     <div className={`trow ${done ? 'is-done' : ''} ${task.status === 'dropped' ? 'is-dropped' : ''}`} style={{ '--c': track?.color ?? 'var(--muted)' } as React.CSSProperties}>
+      {grip}
       <button className={`tick ${done ? 'on' : ''}`} aria-label={done ? 'Mark not done' : 'Mark done'} onClick={() => update('tasks', task.id, { status: done ? 'todo' : 'done' })}>
         <Icon name="check" size={14} />
       </button>
