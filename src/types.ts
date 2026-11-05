@@ -39,6 +39,22 @@ export interface Belief {
   created_at: string
 }
 
+export type OutreachStatus = 'draft' | 'sent' | 'replied' | 'done'
+
+export interface Outreach {
+  id: string
+  name: string
+  company: string | null
+  questions: string | null
+  draft: string | null
+  platform: string | null
+  status: OutreachStatus
+  sent_on: string | null
+  notes: string | null
+  sort: number
+  created_at: string
+}
+
 export interface Idea {
   id: string
   body: string
@@ -104,6 +120,7 @@ export interface Data {
   milestones: Milestone[]
   days: Day[]
   beliefs: Belief[]
+  outreach: Outreach[]
 }
 
 export type TableName = keyof Data

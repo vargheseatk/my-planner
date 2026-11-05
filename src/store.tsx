@@ -2,8 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { supabase } from './supabase'
 import type { Data, TableName } from './types'
 
-const TABLES: TableName[] = ['tracks', 'principles', 'ideas', 'tasks', 'milestones', 'days', 'beliefs']
-const EMPTY: Data = { tracks: [], principles: [], ideas: [], tasks: [], milestones: [], days: [], beliefs: [] }
+const TABLES: TableName[] = ['tracks', 'principles', 'ideas', 'tasks', 'milestones', 'days', 'beliefs', 'outreach']
+const EMPTY: Data = { tracks: [], principles: [], ideas: [], tasks: [], milestones: [], days: [], beliefs: [], outreach: [] }
 
 type Row = { id: string }
 

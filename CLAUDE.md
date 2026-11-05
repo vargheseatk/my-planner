@@ -29,6 +29,10 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
 - `beliefs` is the "Know myself" page: worldviews that actually drive his actions. `kind` is `belief`
   (noticed, holds) or `tension` (still going back and forth). Fields: title, body (his words), in_practice
   (how it shows up). Keep his own phrasing; tidy it, don't rewrite it into slogans.
+- `outreach` is the Reach out tab: people to contact. Fields: name, company, questions (what he wants to
+  know from them), draft (the message), platform (LinkedIn, Email, WhatsApp, Instagram, X, Call, or free text),
+  status draft | sent | replied | done, sent_on, notes (what came of it).
+  `npm run planner -- insert outreach '{"name":"...","company":"...","questions":"...","draft":"...","platform":"LinkedIn"}'`
 - Checklists are `[{ "text", "done" }]` on the task; blocks are `[{ "time", "label", "done" }]` on the day.
 - `update` merges into the row, but `checklist`/`blocks` replace the whole array: read, modify, write back.
 - After writing, tell him in plain words what changed. The portal updates live.
@@ -36,7 +40,7 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
 ## Data model
 
 `supabase/migrations/*.sql` is the source of truth. Tables: tracks, principles (track_id null = global),
-ideas, tasks, milestones, days, beliefs. Every row has `owner`; RLS restricts all access to `owner = auth.uid()`.
+ideas, tasks, milestones, days, beliefs, outreach. Every row has `owner`; RLS restricts all access to `owner = auth.uid()`.
 
 ## Secrets
 

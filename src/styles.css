@@ -338,6 +338,24 @@ button.cal-ev { cursor: pointer; display: inline-block; }
 .errand-input input:focus { outline: none; }
 .chip-btn.small { padding: .18rem .6rem; font-size: .78rem; }
 .errand-group .trow { box-shadow: none; }
+.field > span, .field-head { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: .4rem; }
+.reach-list { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.reach { border-bottom: 1px solid var(--line); }
+.reach:last-child { border-bottom: 0; }
+.reach-head { display: flex; align-items: center; gap: .7rem; width: 100%; border: 0; background: none; padding: .75rem 1rem; text-align: left; color: var(--ink); }
+.reach-head:hover, .reach.open .reach-head { background: var(--surface-2); }
+.reach-who { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: .5rem; overflow: hidden; white-space: nowrap; }
+.reach-name { font-weight: 600; }
+.reach-co { color: var(--muted); font-size: .86rem; overflow: hidden; text-overflow: ellipsis; }
+.reach-head .pill { background: var(--surface-2); color: var(--ink-2); flex: none; }
+.reach.open .reach-head .pill { background: var(--surface); }
+.reach-head > .icon-svg { color: var(--muted); flex: none; transition: transform .15s; }
+.reach.open .reach-head > .icon-svg { transform: rotate(180deg); }
+.reach-body { display: flex; flex-direction: column; gap: 1rem; padding: 1rem 1rem .6rem; }
+.reach-body .edit { border: 1px solid var(--line); border-radius: var(--r-sm); padding: .5rem .65rem; background: var(--bg); }
+.reach-body .edit:focus { border-color: var(--accent); outline: none; }
+.reach-draft { min-height: 5rem; line-height: 1.5; }
+
 
 /* Track sheet */
 .track-hero { display: flex; gap: .8rem; align-items: center; }

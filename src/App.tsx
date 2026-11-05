@@ -5,6 +5,7 @@ import { StoreProvider, useStore } from './store'
 import { TasksPanel } from './views/Tasks'
 import { Deadlines } from './views/Deadlines'
 import { Errands } from './views/Errands'
+import { Reach } from './views/Reach'
 import { NewTrack, TrackDetails } from './views/Tracks'
 import { Inbox } from './views/Inbox'
 import { Principles } from './views/Principles'
@@ -19,11 +20,12 @@ import { Capture } from './components/Capture'
 import { goPage, goTrack, readHash } from './nav'
 
 // The board shows one view at a time: header tabs on wide screens, bottom tabs on phones.
-type Panel = 'tasks' | 'deadlines' | 'errands'
+type Panel = 'tasks' | 'deadlines' | 'errands' | 'reach'
 const VIEWS: { panel: Panel; label: string }[] = [
   { panel: 'tasks', label: 'Tasks' },
   { panel: 'deadlines', label: 'Deadlines' },
   { panel: 'errands', label: 'Errands' },
+  { panel: 'reach', label: 'Reach out' },
 ]
 
 export function App() {
@@ -92,6 +94,7 @@ function Shell() {
   const sheetTrack = data.tracks.find((t) => t.id === trackSheet)
   const inbox = data.ideas.filter((i) => i.status === 'inbox').length
   const errands = openTasks(data.tasks).filter((t) => !t.track_id).length
+  const toSend = data.outreach.filter((o) => o.status === 'draft').length
   const showPanel = (p: Panel) => {
     setPanel(p)
     if (route.page !== 'board') goTrack(null)
@@ -112,6 +115,7 @@ function Shell() {
               <button key={v.panel} role="tab" aria-selected={route.page === 'board' && panel === v.panel} className={route.page === 'board' && panel === v.panel ? 'on' : ''} onClick={() => showPanel(v.panel)}>
                 {v.label}
                 {v.panel === 'errands' && errands > 0 && <span className="n">{errands}</span>}
+                {v.panel === 'reach' && toSend > 0 && <span className="n">{toSend}</span>}
               </button>
             ))}
           </div>
@@ -160,7 +164,7 @@ function Shell() {
             <p className="empty">Loading…</p>
           ) : route.page === 'board' ? (
             <div className={`board show-${panel}`}>
-              {panel === 'tasks' ? <TasksPanel trackId={trackId} /> : panel === 'deadlines' ? <Deadlines trackId={trackId} /> : <Errands />}
+              {panel === 'tasks' ? <TasksPanel trackId={trackId} /> : panel === 'deadlines' ? <Deadlines trackId={trackId} /> : panel === 'errands' ? <Errands /> : <Reach />}
             </div>
           ) : route.page === 'ideas' ? (
             <Inbox />
@@ -190,10 +194,10 @@ function Shell() {
             <span>Errands</span>
             {errands > 0 && <span className="badge">{errands}</span>}
           </button>
-          <button className={route.page === 'ideas' ? 'on' : ''} onClick={() => goPage('ideas')}>
-            <Icon name="ideas" />
-            <span>Ideas</span>
-            {inbox > 0 && <span className="badge">{inbox}</span>}
+          <button className={route.page === 'board' && panel === 'reach' ? 'on' : ''} onClick={() => showPanel('reach')}>
+            <Icon name="send" />
+            <span>Reach out</span>
+            {toSend > 0 && <span className="badge">{toSend}</span>}
           </button>
         </nav>
 
