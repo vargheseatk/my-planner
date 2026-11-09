@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { supabase } from './supabase'
 import type { Data, TableName } from './types'
+import { addDays, todayIso } from './dates'
 
-const TABLES: TableName[] = ['tracks', 'principles', 'ideas', 'tasks', 'milestones', 'days', 'beliefs', 'outreach']
-const EMPTY: Data = { tracks: [], principles: [], ideas: [], tasks: [], milestones: [], days: [], beliefs: [], outreach: [] }
+const TABLES: TableName[] = ['tracks', 'principles', 'ideas', 'tasks', 'milestones', 'days', 'beliefs', 'outreach', 'habits', 'habit_logs', 'settings']
+const EMPTY: Data = { tracks: [], principles: [], ideas: [], tasks: [], milestones: [], days: [], beliefs: [], outreach: [], habits: [], habit_logs: [], settings: [] }
 
 type Row = { id: string }
 
@@ -36,7 +37,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const timer = useRef<number | undefined>(undefined)
 
   const load = useCallback(async () => {
-    const results = await Promise.all(TABLES.map((t) => supabase.from(t).select('*')))
+    // Habit logs grow every day; Supabase caps a select at 1000 rows, so load roughly the last year.
+    const results = await Promise.all(TABLES.map((t) => (t === 'habit_logs' ? supabase.from(t).select('*').gte('day', addDays(todayIso(), -400)) : supabase.from(t).select('*'))))
     const next = { ...EMPTY } as Record<TableName, unknown[]>
     for (const [i, res] of results.entries()) {
       if (res.error) {

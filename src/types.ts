@@ -56,6 +56,29 @@ export interface Outreach {
   created_at: string
 }
 
+export interface Habit {
+  id: string
+  name: string
+  principle: string | null
+  goal_count: number | null
+  color: string
+  active: boolean
+  sort: number
+  created_at: string
+}
+
+export interface HabitLog {
+  id: string
+  habit_id: string
+  day: string
+}
+
+export interface Setting {
+  id: string
+  key: string
+  value: string | null
+}
+
 export interface Idea {
   id: string
   body: string
@@ -122,6 +145,9 @@ export interface Data {
   days: Day[]
   beliefs: Belief[]
   outreach: Outreach[]
+  habits: Habit[]
+  habit_logs: HabitLog[]
+  settings: Setting[]
 }
 
 export type TableName = keyof Data

@@ -171,7 +171,7 @@ kbd { font: 500 .7rem var(--sans); border: 1px solid var(--line-strong); border-
 .page.narrow { max-width: 720px; }
 .page-head { margin-bottom: 1.8rem; }
 .page-head.row { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; }
-.tabbar { display: none; }
+.tabbar, .fab { display: none; }
 .error-bar { background: var(--over); color: #fff; padding: .6rem .9rem; border-radius: var(--r-sm); cursor: pointer; margin-bottom: 1rem; }
 .error-bar span { opacity: .75; font-size: .8rem; margin-left: .5rem; }
 
@@ -366,6 +366,39 @@ button.cal-ev { cursor: pointer; display: inline-block; }
 .errand-input input:focus { outline: none; }
 .chip-btn.small { padding: .18rem .6rem; font-size: .78rem; }
 .errand-group .trow { box-shadow: none; }
+
+/* Habits */
+.habit-motto { width: 100%; font-size: 1.45rem; font-weight: 600; line-height: 1.3; text-align: center; padding: .4rem .5rem 1rem; color: var(--ink); border: 0; background: none; resize: none; }
+.habit-week { display: flex; align-items: center; justify-content: center; gap: .3rem; margin-bottom: .6rem; }
+.habit-range { font-weight: 600; font-size: .9rem; min-width: 8rem; text-align: center; }
+.habit-grid { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: .4rem .7rem .5rem; }
+.habit-row { display: grid; grid-template-columns: 1.4rem minmax(0, 1fr) repeat(7, 2.3rem); align-items: center; min-height: 3rem; border-bottom: 1px solid var(--line); background: var(--surface); }
+.sortable:last-child > .habit-row { border-bottom: 0; }
+.habit-days { min-height: 2.4rem; }
+.habit-day { display: flex; flex-direction: column; align-items: center; font-size: .7rem; font-weight: 600; color: var(--muted); line-height: 1.15; }
+.habit-day em { font-style: normal; font-weight: 500; font-size: .68rem; opacity: .8; }
+.habit-day.today { color: var(--accent); }
+.habit-name-col { min-width: 0; display: flex; flex-direction: column; padding-right: .4rem; }
+.habit-name { font-weight: 600; border: 0; background: none; padding: 0; width: 100%; color: var(--ink); text-overflow: ellipsis; }
+.habit-meta { display: flex; flex-wrap: wrap; gap: .1rem .6rem; font-size: .72rem; color: var(--muted); }
+.habit-goal { display: inline-flex; align-items: center; gap: .35rem; font-weight: 600; color: var(--ink-2); }
+.habit-goal .bar { width: 3.2rem; height: 5px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.habit-goal .bar span { display: block; height: 100%; background: var(--c, var(--ok)); }
+.habit-cell { justify-self: center; display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; border: 1.5px solid var(--line-strong); background: transparent; color: transparent; padding: 0; cursor: pointer; transition: background .12s, border-color .12s; }
+.habit-cell:hover:not(:disabled) { border-color: var(--c, var(--ok)); }
+.habit-cell.today { border-color: var(--ink-2); }
+.habit-cell.on { background: var(--c, var(--ok)); border-color: var(--c, var(--ok)); color: #fff; }
+.habit-cell:disabled { opacity: .3; cursor: default; }
+.habit-grid .addline { margin-top: .2rem; }
+.habit-whys { margin-top: 1.6rem; display: flex; flex-direction: column; gap: .2rem; }
+.habit-why { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto; gap: .2rem .8rem; align-items: start; padding: .55rem 0; border-bottom: 1px solid var(--line); }
+.habit-why:last-child { border-bottom: 0; }
+.habit-why-name { font-weight: 600; font-size: .86rem; color: var(--c, var(--ok)); padding-top: .1rem; }
+.habit-why-text { border: 0; background: none; padding: 0; width: 100%; font-style: italic; color: var(--ink-2); resize: none; }
+.habit-why-tools { display: flex; align-items: center; gap: .3rem; font-size: .72rem; color: var(--muted); }
+.habit-why-tools label { display: inline-flex; align-items: center; gap: .3rem; }
+.habit-goal-input { width: 3.4rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); padding: .15rem .3rem; font-size: .78rem; color: var(--ink); }
+
 .field > span, .field-head { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: .4rem; }
 .reach-list { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
 .reach { border-bottom: 1px solid var(--line); }
@@ -459,7 +492,7 @@ button.cal-ev { cursor: pointer; display: inline-block; }
   .tabbar button { border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: .1rem; color: var(--muted); font-size: .68rem; font-weight: 500; padding: .3rem 0; position: relative; }
   .tabbar button.on { color: var(--accent); }
   .tabbar .badge { position: absolute; top: 0; left: 58%; margin: 0; }
-  .tabbar .fab { justify-self: center; width: 3.2rem; height: 3.2rem; border-radius: 50%; background: var(--accent); color: var(--accent-ink); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent); display: grid; place-items: center; margin-top: -1.2rem; padding: 0; }
+  .fab { display: grid; place-items: center; position: fixed; right: 16px; bottom: calc(4.6rem + env(safe-area-inset-bottom)); z-index: 31; width: 3.3rem; height: 3.3rem; border-radius: 50%; border: 0; padding: 0; background: var(--accent); color: var(--accent-ink); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent); }
   h1, .track-head h1 { font-size: 1.6rem; }
   .page-head { margin-bottom: 1.3rem; }
   .sheet-wrap { align-items: flex-end; }
@@ -467,5 +500,12 @@ button.cal-ev { cursor: pointer; display: inline-block; }
   .sheet-body { padding-bottom: calc(2rem + env(safe-area-inset-bottom)); }
   .checklist li .icon-btn, .check-item .icon-btn, .pr-x, .pf-actions { opacity: 1; }
   .grip { opacity: .6; width: 1.7rem; }
+  .habit-grid { padding: .3rem .4rem .4rem; }
+  .habit-row { grid-template-columns: 1.4rem minmax(0, 1fr) repeat(7, 1.8rem); }
+  .habit-name { font-size: .92rem; }
+  .habit-cell { width: 1.55rem; height: 1.55rem; }
+  .habit-motto { font-size: 1.2rem; }
+  .habit-why { grid-template-columns: minmax(0, 1fr) auto; }
+  .habit-why-text { grid-column: 1 / -1; grid-row: 2; }
   .field-row { grid-template-columns: 1fr; }
 }

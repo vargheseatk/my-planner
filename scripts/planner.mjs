@@ -7,6 +7,7 @@
 //                          [--lane now|later] [--priority 1] [--check "step a|step b"] [--notes "..."] [--waiting "who"]
 //                          (no --track = an errand: a small reminder outside any track)
 //   npm run planner -- done <task id or id prefix>
+//   npm run planner -- habit <name> [--day 2026-11-09] [--undo]   mark a habit done (default today)
 //   npm run planner -- insert <table> <json | @file.json>   (object or array)
 //   npm run planner -- update <table> <id> <json | @file.json>
 //   npm run planner -- delete <table> <id>
@@ -18,7 +19,7 @@ import 'dotenv/config'
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 
-const TABLES = ['tracks', 'principles', 'ideas', 'tasks', 'milestones', 'days', 'beliefs', 'outreach']
+const TABLES = ['tracks', 'principles', 'ideas', 'tasks', 'milestones', 'days', 'beliefs', 'outreach', 'habits', 'habit_logs', 'settings']
 
 const { SUPABASE_URL, SUPABASE_SECRET_KEY } = process.env
 if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) fail('SUPABASE_URL / SUPABASE_SECRET_KEY missing from .env')
@@ -101,12 +102,17 @@ async function resolveId(tbl, idOrPrefix) {
 }
 
 const today = () => new Date().toLocaleDateString('en-CA') // YYYY-MM-DD, local time
+const addDays = (day, n) => {
+  const d = new Date(day + 'T00:00:00')
+  d.setDate(d.getDate() + n)
+  return d.toLocaleDateString('en-CA')
+}
 
 const commands = {
   async snapshot() {
     const o = await owner()
     const q = (t) => db.from(t).select('*').eq('owner', o)
-    const [tracks, principles, tasks, ideas, milestones, days, beliefs, outreach] = await Promise.all([
+    const [tracks, principles, tasks, ideas, milestones, days, beliefs, outreach, habits, habitLogs] = await Promise.all([
       q('tracks').order('sort'),
       q('principles').eq('active', true).order('sort'),
       q('tasks').in('status', ['todo', 'doing', 'waiting']).order('due_on', { nullsFirst: false }),
@@ -115,6 +121,8 @@ const commands = {
       q('days').gte('day', today()).order('day').limit(7),
       q('beliefs').order('sort'),
       q('outreach').neq('status', 'done').order('sort'),
+      q('habits').eq('active', true).order('sort'),
+      q('habit_logs').gte('day', addDays(today(), -6)),
     ].map(async (p) => check(await p)))
     const slug = Object.fromEntries(tracks.map((t) => [t.id, t.slug]))
     const tag = (r) => ({ ...r, owner: undefined, track: slug[r.track_id] ?? null })
@@ -127,6 +135,7 @@ const commands = {
       milestones: milestones.map(tag),
       beliefs: beliefs.map((b) => ({ ...b, owner: undefined })),
       outreach: outreach.map((r) => ({ ...r, owner: undefined })),
+      habits: habits.map((h) => ({ id: h.id, name: h.name, principle: h.principle, goal_count: h.goal_count, done_last_7_days: habitLogs.filter((l) => l.habit_id === h.id).map((l) => l.day).sort() })),
       upcoming_days: days.map((d) => ({ ...d, owner: undefined, focus_track: slug[d.focus_track_id] ?? null })),
     }, null, 2))
   },
@@ -161,6 +170,24 @@ const commands = {
     const id = await resolveId('tasks', pos[0] ?? fail('task id required'))
     check(await db.from('tasks').update({ status: 'done' }).eq('id', id).eq('owner', await owner()))
     console.log(`done ${id}`)
+  },
+
+  async habit({ pos, flags }) {
+    const name = pos.join(' ').toLowerCase()
+    if (!name) fail('habit name required')
+    const o = await owner()
+    const habits = check(await db.from('habits').select('id, name').eq('owner', o).eq('active', true))
+    const hits = habits.filter((h) => h.name.toLowerCase() === name).concat(habits.filter((h) => h.name.toLowerCase() !== name && h.name.toLowerCase().includes(name)))
+    if (!hits.length) fail(`no habit matching "${name}". Habits: ${habits.map((h) => h.name).join(', ')}`)
+    const h = hits[0]
+    const day = flags.day ?? today()
+    if (flags.undo) {
+      check(await db.from('habit_logs').delete().eq('habit_id', h.id).eq('day', day).eq('owner', o))
+      console.log(`${h.name}: cleared ${day}`)
+    } else {
+      check(await db.from('habit_logs').upsert({ owner: o, habit_id: h.id, day }, { onConflict: 'habit_id,day', ignoreDuplicates: true }))
+      console.log(`${h.name}: done ${day}`)
+    }
   },
 
   async insert({ pos }) {

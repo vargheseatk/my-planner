@@ -15,6 +15,7 @@ npm run planner -- idea "text" --track screenplays            # source=claude, l
 npm run planner -- task "title" --track priyamvada --lane now --due 2026-11-07 --check "a|b|c"
 npm run planner -- task "Visit the bank" --due 2026-11-04                # no --track = an errand
 npm run planner -- done <task id or prefix>
+npm run planner -- habit gym                                 # mark a habit done today (--day 2026-11-08, --undo)
 npm run planner -- update tasks <id> '{"status":"waiting","waiting_on":"composer"}'
 npm run planner -- insert principles '{"track":"monastery","title":"...","body":"..."}'
 npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"...","top_task_ids":["<id>"],"blocks":[{"time":"07:00","label":"Parents sequencing","done":false}]}'
@@ -33,6 +34,9 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
   know from them), draft (the message), platform (LinkedIn, Email, WhatsApp, Instagram, X, Call, or free text),
   status draft | sent | replied | done, sent_on, notes (what came of it), top (bool: green circle = top reach-out to follow up).
   `npm run planner -- insert outreach '{"name":"...","company":"...","questions":"...","draft":"...","platform":"LinkedIn"}'`
+- `habits` is the Habits tab: name, principle (the small line under the tracker), goal_count (optional finish
+  line in days done, e.g. Daily Film 100), sort. `habit_logs` holds one row per habit per day done.
+  The motto on top of the tracker is `settings` key `habits_motto`.
 - Checklists are `[{ "text", "done" }]` on the task; blocks are `[{ "time", "label", "done" }]` on the day.
 - `update` merges into the row, but `checklist`/`blocks` replace the whole array: read, modify, write back.
 - After writing, tell him in plain words what changed. The portal updates live.
@@ -40,7 +44,7 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
 ## Data model
 
 `supabase/migrations/*.sql` is the source of truth. Tables: tracks, principles (track_id null = global),
-ideas, tasks, milestones, days, beliefs, outreach. Every row has `owner`; RLS restricts all access to `owner = auth.uid()`.
+ideas, tasks, milestones, days, beliefs, outreach, habits, habit_logs, settings. Every row has `owner`; RLS restricts all access to `owner = auth.uid()`.
 
 ## Secrets
 
