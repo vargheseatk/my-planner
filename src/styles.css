@@ -369,6 +369,20 @@ button.cal-ev { cursor: pointer; display: inline-block; }
 
 /* Habits */
 .habit-motto { width: 100%; font-size: 1.45rem; font-weight: 600; line-height: 1.3; text-align: center; padding: .4rem .5rem 1rem; color: var(--ink); border: 0; background: none; resize: none; }
+.habit-mode { display: flex; justify-content: center; margin-bottom: .5rem; }
+.habit-months { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .8rem; }
+.habit-month { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: .85rem .9rem .9rem; }
+.hm-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+.hm-name { font-weight: 600; color: var(--c, var(--ok)); }
+.hm-pct { font-size: 1.35rem; font-weight: 700; color: var(--ink); }
+.hm-stats { display: flex; flex-wrap: wrap; gap: .15rem .8rem; font-size: .76rem; color: var(--muted); margin: .1rem 0 .7rem; }
+.hm-stats b { color: var(--ink); font-weight: 600; }
+.hm-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.hm-dow { font-size: .62rem; font-weight: 600; color: var(--muted); text-align: center; }
+.hm-day { aspect-ratio: 1; border: 0; border-radius: 6px; padding: 0; background: var(--surface-2); color: var(--muted); font-size: .66rem; cursor: pointer; }
+.hm-day.on { background: var(--c, var(--ok)); color: #fff; font-weight: 600; }
+.hm-day.today { box-shadow: inset 0 0 0 1.5px var(--ink-2); }
+.hm-day:disabled { opacity: .35; cursor: default; }
 .habit-week { display: flex; align-items: center; justify-content: center; gap: .3rem; margin-bottom: .6rem; }
 .habit-range { font-weight: 600; font-size: .9rem; min-width: 8rem; text-align: center; }
 .habit-grid { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: .4rem .7rem .5rem; }
