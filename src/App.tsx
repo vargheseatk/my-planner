@@ -24,9 +24,9 @@ import { goBucket, goPage, goPanel, goTrack, readHash, type Panel } from './nav'
 // The board shows one view at a time: header tabs on wide screens, bottom tabs on phones.
 const VIEWS: { panel: Panel; label: string }[] = [
   { panel: 'ideas', label: 'Ideas' },
+  { panel: 'errands', label: 'Errands' },
   { panel: 'tasks', label: 'Tasks' },
   { panel: 'habits', label: 'Habits' },
-  { panel: 'errands', label: 'Errands' },
   { panel: 'reach', label: 'Reach out' },
 ]
 
@@ -206,6 +206,11 @@ function Shell() {
             <span>Ideas</span>
             {inbox > 0 && <span className="badge">{inbox}</span>}
           </button>
+          <button className={route.page === 'board' && panel === 'errands' ? 'on' : ''} onClick={() => showPanel('errands')}>
+            <Icon name="flag" />
+            <span>Errands</span>
+            {errands > 0 && <span className="badge">{errands}</span>}
+          </button>
           <button className={route.page === 'board' && panel === 'tasks' ? 'on' : ''} onClick={() => showPanel('tasks')}>
             <Icon name="list" />
             <span>Tasks</span>
@@ -214,11 +219,6 @@ function Shell() {
             <Icon name="check" />
             <span>Habits</span>
             {habitsLeft > 0 && <span className="badge">{habitsLeft}</span>}
-          </button>
-          <button className={route.page === 'board' && panel === 'errands' ? 'on' : ''} onClick={() => showPanel('errands')}>
-            <Icon name="flag" />
-            <span>Errands</span>
-            {errands > 0 && <span className="badge">{errands}</span>}
           </button>
           <button className={route.page === 'board' && panel === 'reach' ? 'on' : ''} onClick={() => showPanel('reach')}>
             <Icon name="send" />
