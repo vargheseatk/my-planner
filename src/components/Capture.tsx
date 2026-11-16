@@ -3,10 +3,12 @@ import { addDays, todayIso } from '../dates'
 import { useStore } from '../store'
 import type { Lane } from '../types'
 import { Segmented, TrackChips, type CaptureDefaults } from './ui'
+import { sortedGroups } from '../views/Ideas'
 
 // Quick capture: an idea for the inbox, a task straight into a track, or (no track) an errand.
 export function Capture({ defaults, onDone }: { defaults: CaptureDefaults; onDone: () => void }) {
-  const { insert } = useStore()
+  const { data, insert } = useStore()
+  const [groupId, setGroupId] = useState('')
   const [kind, setKind] = useState<'idea' | 'task'>(defaults.kind ?? 'idea')
   const [text, setText] = useState('')
   const [trackId, setTrackId] = useState<string | null>(defaults.trackId ?? null)
@@ -20,7 +22,7 @@ export function Capture({ defaults, onDone }: { defaults: CaptureDefaults; onDon
     setBusy(true)
     const ok =
       kind === 'idea'
-        ? await insert('ideas', { body, track_id: trackId })
+        ? await insert('ideas', { body, group_id: groupId || null, sort: -1 })
         : await insert('tasks', { title: body, track_id: trackId, due_on: due || null, lane })
     setBusy(false)
     if (ok) onDone()
@@ -53,10 +55,23 @@ export function Capture({ defaults, onDone }: { defaults: CaptureDefaults; onDon
           if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save()
         }}
       />
+      {kind === 'idea' ? (
+        <div className="field">
+          <label>Heading</label>
+          <div className="chips">
+            {[{ id: '', name: 'Unsorted', color: 'var(--muted)' }, ...sortedGroups(data.idea_groups)].map((g) => (
+              <button key={g.id} type="button" className={`chip-btn ${groupId === g.id ? 'on' : ''}`} style={{ '--c': g.color } as React.CSSProperties} onClick={() => setGroupId(g.id)}>
+                {g.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
       <div className="field">
         <label>Track{kind === 'task' && !trackId && <span className="muted">· none = errand</span>}</label>
         <TrackChips value={trackId} onChange={setTrackId} onlyLive />
       </div>
+      )}
       {kind === 'task' && trackId && (
         <div className="field">
           <label>Lane</label>

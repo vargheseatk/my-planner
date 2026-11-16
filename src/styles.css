@@ -367,6 +367,38 @@ button.cal-ev { cursor: pointer; display: inline-block; }
 .chip-btn.small { padding: .18rem .6rem; font-size: .78rem; }
 .errand-group .trow { box-shadow: none; }
 
+/* Ideas notebook */
+.idea-add { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: .7rem .8rem .6rem; margin-bottom: 1.3rem; box-shadow: var(--shadow); }
+.idea-add:focus-within { border-color: var(--accent); }
+.idea-add textarea { width: 100%; border: 0; background: none; resize: none; font-size: 1rem; color: var(--ink); padding: .2rem 0; field-sizing: content; min-height: 1.6rem; max-height: 10rem; }
+.idea-add textarea:focus { outline: none; }
+.idea-add-row { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-top: .4rem; }
+.idea-to { display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; color: var(--muted); }
+.idea-to select { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); padding: .25rem .4rem; font-size: .84rem; max-width: 12rem; }
+.idea-group { margin-bottom: .9rem; }
+.idea-group-top { display: flex; align-items: center; gap: .2rem; }
+.idea-group-head { flex: 1; min-width: 0; display: flex; align-items: center; gap: .45rem; border: 0; background: none; padding: .35rem 0; color: var(--ink); text-align: left; }
+.idea-group-head.static { padding: .35rem 0 .35rem .1rem; }
+.idea-group-head h2 { font-size: 1.05rem; text-transform: none; letter-spacing: 0; font-weight: 600; color: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.idea-group-head > .icon-svg { color: var(--muted); flex: none; }
+.idea-group-head .dot { background: var(--c); }
+.idea-group-edit { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .5rem 0 .7rem 1.6rem; }
+.idea-group-edit .boxed { flex: 1 1 12rem; }
+.swatch-dot, .idea-group-edit .swatch { width: 1.3rem; height: 1.3rem; border-radius: 50%; margin: 0; border: 2px solid transparent; padding: 0; box-shadow: none; }
+.idea-group-edit .swatch.on { border-color: var(--ink); }
+.idea-group .addline { margin: .1rem 0 .3rem 1.4rem; }
+.idea-list { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.idea-list:empty { display: none; }
+.idea-row { border-bottom: 1px solid var(--line); background: var(--surface); }
+.idea-list > :last-child .idea-row, .idea-list > .idea-row:last-child { border-bottom: 0; }
+.idea-line { display: flex; align-items: flex-start; gap: .35rem; padding: .45rem .5rem .45rem .7rem; }
+.idea-line .grip { margin-top: .1rem; min-height: 1.5rem; }
+.idea-text { flex: 1; min-width: 0; border: 0; background: none; padding: .2rem 0; color: var(--ink); resize: none; line-height: 1.45; }
+.idea-line .track-tag, .idea-line .icon-btn { margin-top: .1rem; flex: none; }
+.idea-row.dropped .idea-text { color: var(--muted); text-decoration: line-through; }
+.idea-actions-row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: 0 .7rem .6rem 2.1rem; }
+.idea-group.letgo { margin-top: 1.4rem; opacity: .8; }
+
 /* Habits */
 .habit-motto { width: 100%; font-size: 1.45rem; font-weight: 600; line-height: 1.3; text-align: center; padding: .4rem .5rem 1rem; color: var(--ink); border: 0; background: none; resize: none; }
 .habit-mode { display: flex; justify-content: center; margin-bottom: .5rem; }

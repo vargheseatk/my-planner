@@ -59,7 +59,7 @@ export function Reach() {
       >
         <div className="errand-input">
           <Icon name="plus" size={16} />
-          <input placeholder="Who do you want to reach out to?" value={name} onChange={(e) => setName(e.target.value)} />
+          <input data-primary-add placeholder="Who do you want to reach out to?" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
       </form>
       {groups.map(

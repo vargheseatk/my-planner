@@ -214,7 +214,8 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
 
 // ---------- Small pieces ----------
 
-export function AddLine({ placeholder, onAdd }: { placeholder: string; onAdd: (text: string) => void }) {
+// primary: the page's main add box; the + button focuses it instead of opening Capture.
+export function AddLine({ placeholder, onAdd, primary }: { placeholder: string; onAdd: (text: string) => void; primary?: boolean }) {
   const [v, setV] = useState('')
   return (
     <form
@@ -227,7 +228,7 @@ export function AddLine({ placeholder, onAdd }: { placeholder: string; onAdd: (t
       }}
     >
       <Icon name="plus" size={16} />
-      <input className="edit" placeholder={placeholder} value={v} onChange={(e) => setV(e.target.value)} />
+      <input className="edit" placeholder={placeholder} value={v} onChange={(e) => setV(e.target.value)} data-primary-add={primary || undefined} />
     </form>
   )
 }

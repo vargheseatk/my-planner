@@ -3,8 +3,8 @@ import { supabase } from './supabase'
 import type { Data, TableName } from './types'
 import { addDays, todayIso } from './dates'
 
-const TABLES: TableName[] = ['tracks', 'principles', 'ideas', 'tasks', 'milestones', 'days', 'beliefs', 'outreach', 'habits', 'habit_logs', 'settings']
-const EMPTY: Data = { tracks: [], principles: [], ideas: [], tasks: [], milestones: [], days: [], beliefs: [], outreach: [], habits: [], habit_logs: [], settings: [] }
+const TABLES: TableName[] = ['tracks', 'principles', 'ideas', 'tasks', 'milestones', 'days', 'beliefs', 'outreach', 'habits', 'habit_logs', 'settings', 'idea_groups']
+const EMPTY: Data = { tracks: [], principles: [], ideas: [], tasks: [], milestones: [], days: [], beliefs: [], outreach: [], habits: [], habit_logs: [], settings: [], idea_groups: [] }
 
 type Row = { id: string }
 

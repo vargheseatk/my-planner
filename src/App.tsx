@@ -9,7 +9,7 @@ import { Reach } from './views/Reach'
 import { Habits, activeHabits } from './views/Habits'
 import { todayIso } from './dates'
 import { NewTrack, TrackDetails } from './views/Tracks'
-import { Inbox } from './views/Inbox'
+import { Ideas, unsortedIdeas } from './views/Ideas'
 import { Principles } from './views/Principles'
 import { Self } from './views/Self'
 import { Settings } from './views/Settings'
@@ -22,11 +22,11 @@ import { Capture } from './components/Capture'
 import { goPage, goTrack, readHash } from './nav'
 
 // The board shows one view at a time: header tabs on wide screens, bottom tabs on phones.
-type Panel = 'tasks' | 'habits' | 'deadlines' | 'errands' | 'reach'
+type Panel = 'tasks' | 'habits' | 'ideas' | 'deadlines' | 'errands' | 'reach'
 const VIEWS: { panel: Panel; label: string }[] = [
   { panel: 'tasks', label: 'Tasks' },
   { panel: 'habits', label: 'Habits' },
-  { panel: 'deadlines', label: 'Deadlines' },
+  { panel: 'ideas', label: 'Ideas' },
   { panel: 'errands', label: 'Errands' },
   { panel: 'reach', label: 'Reach out' },
 ]
@@ -89,13 +89,20 @@ function Shell() {
     }),
     [],
   )
+  // + adds on the page you're on: focus its own add box if it has one, else open Capture.
+  const addHere = useCallback(() => {
+    const el = document.querySelector<HTMLElement>('[data-primary-add]')
+    if (!el) return setCapture({ trackId })
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    el.focus({ preventScroll: true })
+  }, [trackId])
   const closeTask = useCallback(() => setTaskId(null), [])
   const closeCapture = useCallback(() => setCapture(null), [])
   const closeTrack = useCallback(() => setTrackSheet(null), [])
   const task = data.tasks.find((t) => t.id === taskId)
   const taskTrack = data.tracks.find((t) => t.id === task?.track_id)
   const sheetTrack = data.tracks.find((t) => t.id === trackSheet)
-  const inbox = data.ideas.filter((i) => i.status === 'inbox').length
+  const inbox = unsortedIdeas(data.ideas).length
   const errands = openTasks(data.tasks).filter((t) => !t.track_id).length
   const toSend = data.outreach.filter((o) => o.status === 'draft').length
   const today = todayIso()
@@ -120,13 +127,14 @@ function Shell() {
               <button key={v.panel} role="tab" aria-selected={route.page === 'board' && panel === v.panel} className={route.page === 'board' && panel === v.panel ? 'on' : ''} onClick={() => showPanel(v.panel)}>
                 {v.label}
                 {v.panel === 'errands' && errands > 0 && <span className="n">{errands}</span>}
+                {v.panel === 'ideas' && inbox > 0 && <span className="n">{inbox}</span>}
                 {v.panel === 'habits' && habitsLeft > 0 && <span className="n">{habitsLeft}</span>}
                 {v.panel === 'reach' && toSend > 0 && <span className="n">{toSend}</span>}
               </button>
             ))}
           </div>
           <span className="spacer" />
-          <button className="btn small primary capture-btn" onClick={() => setCapture({ trackId })} title="Capture (N)">
+          <button className="btn small primary capture-btn" onClick={addHere} title="Capture (N)">
             <Icon name="plus" size={16} /> Capture
           </button>
           <Menu
@@ -141,9 +149,12 @@ function Shell() {
           >
             {(close) => (
               <>
+                <button role="menuitem" className={route.page === 'board' && panel === 'deadlines' ? 'on' : ''} onClick={() => (close(), showPanel('deadlines'))}>
+                  <Icon name="timeline" size={18} />
+                  Deadlines
+                </button>
                 {(
                   [
-                    ['ideas', 'Ideas', 'ideas'],
                     ['self', 'Know myself', 'self'],
                     ['principles', 'Principles', 'principles'],
                     ['settings', 'Settings', 'settings'],
@@ -152,7 +163,6 @@ function Shell() {
                   <button key={page} role="menuitem" className={route.page === page ? 'on' : ''} onClick={() => (close(), goPage(page))}>
                     <Icon name={icon} size={18} />
                     {label}
-                    {page === 'ideas' && inbox > 0 && <span className="badge">{inbox}</span>}
                   </button>
                 ))}
               </>
@@ -170,10 +180,8 @@ function Shell() {
             <p className="empty">Loading…</p>
           ) : route.page === 'board' ? (
             <div className={`board show-${panel}`}>
-              {panel === 'tasks' ? <TasksPanel trackId={trackId} /> : panel === 'deadlines' ? <Deadlines trackId={trackId} /> : panel === 'errands' ? <Errands /> : panel === 'habits' ? <Habits /> : <Reach />}
+              {panel === 'tasks' ? <TasksPanel trackId={trackId} /> : panel === 'deadlines' ? <Deadlines trackId={trackId} /> : panel === 'errands' ? <Errands /> : panel === 'habits' ? <Habits /> : panel === 'ideas' ? <Ideas /> : <Reach />}
             </div>
-          ) : route.page === 'ideas' ? (
-            <Inbox />
           ) : route.page === 'self' ? (
             <Self />
           ) : route.page === 'principles' ? (
@@ -193,9 +201,10 @@ function Shell() {
             <span>Habits</span>
             {habitsLeft > 0 && <span className="badge">{habitsLeft}</span>}
           </button>
-          <button className={route.page === 'board' && panel === 'deadlines' ? 'on' : ''} onClick={() => showPanel('deadlines')}>
-            <Icon name="timeline" />
-            <span>Deadlines</span>
+          <button className={route.page === 'board' && panel === 'ideas' ? 'on' : ''} onClick={() => showPanel('ideas')}>
+            <Icon name="ideas" />
+            <span>Ideas</span>
+            {inbox > 0 && <span className="badge">{inbox}</span>}
           </button>
           <button className={route.page === 'board' && panel === 'errands' ? 'on' : ''} onClick={() => showPanel('errands')}>
             <Icon name="flag" />
@@ -208,7 +217,7 @@ function Shell() {
             {toSend > 0 && <span className="badge">{toSend}</span>}
           </button>
         </nav>
-        <button className="fab" aria-label="Capture" onClick={() => setCapture({ trackId })}>
+        <button className="fab" aria-label="Capture" onClick={addHere}>
           <Icon name="plus" size={26} />
         </button>
 

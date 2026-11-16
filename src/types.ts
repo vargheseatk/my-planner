@@ -85,6 +85,16 @@ export interface Idea {
   track_id: string | null
   status: IdeaStatus
   source: 'portal' | 'claude'
+  group_id: string | null
+  sort: number
+  created_at: string
+}
+
+export interface IdeaGroup {
+  id: string
+  name: string
+  color: string
+  sort: number
   created_at: string
 }
 
@@ -148,6 +158,7 @@ export interface Data {
   habits: Habit[]
   habit_logs: HabitLog[]
   settings: Setting[]
+  idea_groups: IdeaGroup[]
 }
 
 export type TableName = keyof Data

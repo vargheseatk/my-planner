@@ -2,7 +2,7 @@
 // which bypasses RLS, so every write sets owner explicitly.
 //
 //   npm run planner -- snapshot                       everything open, as JSON
-//   npm run planner -- idea "text" [--track slug]
+//   npm run planner -- idea "text" [--group "Heading name"] [--track slug]   (new heading if none matches)
 //   npm run planner -- task "title" [--track slug] [--due 2026-11-15] [--start 2026-11-08]
 //                          [--lane now|later] [--priority 1] [--check "step a|step b"] [--notes "..."] [--waiting "who"]
 //                          (no --track = an errand: a small reminder outside any track)
@@ -19,7 +19,7 @@ import 'dotenv/config'
 import { readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
 
-const TABLES = ['tracks', 'principles', 'ideas', 'tasks', 'milestones', 'days', 'beliefs', 'outreach', 'habits', 'habit_logs', 'settings']
+const TABLES = ['tracks', 'principles', 'ideas', 'tasks', 'milestones', 'days', 'beliefs', 'outreach', 'habits', 'habit_logs', 'settings', 'idea_groups']
 
 const { SUPABASE_URL, SUPABASE_SECRET_KEY } = process.env
 if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) fail('SUPABASE_URL / SUPABASE_SECRET_KEY missing from .env')
@@ -143,7 +143,14 @@ const commands = {
   async idea({ pos, flags }) {
     const body = pos.join(' ')
     if (!body) fail('idea text required')
-    const row = await prepare({ body, source: 'claude', ...(flags.track ? { track: flags.track } : {}) })
+    const row = await prepare({ body, source: 'claude', sort: -1, ...(flags.track ? { track: flags.track } : {}) })
+    if (flags.group) {
+      const o = await owner()
+      const groups = check(await db.from('idea_groups').select('id, name, sort').eq('owner', o))
+      let g = groups.find((x) => x.name.toLowerCase() === String(flags.group).toLowerCase())
+      if (!g) g = check(await db.from('idea_groups').insert({ owner: o, name: flags.group, sort: groups.length }).select('id').single())
+      row.group_id = g.id
+    }
     const out = check(await db.from('ideas').insert(row).select('id').single())
     console.log(`idea ${out.id}`)
   },

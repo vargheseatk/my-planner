@@ -11,7 +11,7 @@ Always run `snapshot` first so you work from current state (he also edits in the
 
 ```bash
 npm run planner -- snapshot                                   # open tasks, inbox, tracks, principles, milestones, next 7 days
-npm run planner -- idea "text" --track screenplays            # source=claude, lands in the Ideas inbox
+npm run planner -- idea "text" --group "Reels"               # one-liner under a heading (created if new); no --group = Unsorted
 npm run planner -- task "title" --track priyamvada --lane now --due 2026-11-07 --check "a|b|c"
 npm run planner -- task "Visit the bank" --due 2026-11-04                # no --track = an errand
 npm run planner -- done <task id or prefix>
@@ -37,6 +37,9 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
 - `habits` is the Habits tab: name, principle (the small line under the tracker), goal_count (optional finish
   line in days done, e.g. Daily Film 100), sort. `habit_logs` holds one row per habit per day done.
   The motto on top of the tracker is `settings` key `habits_motto`.
+- `ideas` is the Ideas tab (a notebook, not tasks): one-liners under headings (`idea_groups`: name, color, sort).
+  `group_id` null = Unsorted. Live statuses inbox/kept/parked; `dropped` = Let go; `converted` = became a task.
+  Lower `sort` shows first (new ideas go on top with a negative sort).
 - Checklists are `[{ "text", "done" }]` on the task; blocks are `[{ "time", "label", "done" }]` on the day.
 - `update` merges into the row, but `checklist`/`blocks` replace the whole array: read, modify, write back.
 - After writing, tell him in plain words what changed. The portal updates live.
@@ -44,7 +47,7 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
 ## Data model
 
 `supabase/migrations/*.sql` is the source of truth. Tables: tracks, principles (track_id null = global),
-ideas, tasks, milestones, days, beliefs, outreach, habits, habit_logs, settings. Every row has `owner`; RLS restricts all access to `owner = auth.uid()`.
+ideas, tasks, milestones, days, beliefs, outreach, habits, habit_logs, settings, idea_groups. Every row has `owner`; RLS restricts all access to `owner = auth.uid()`.
 
 ## Secrets
 

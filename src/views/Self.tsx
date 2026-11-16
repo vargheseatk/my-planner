@@ -24,10 +24,10 @@ export function Self() {
         const list = data.beliefs.filter((b) => b.kind === kind).sort((a, b) => a.sort - b.sort || a.created_at.localeCompare(b.created_at))
         return (
           <Section key={kind} title={title} count={list.length}>
+            <AddLine primary={kind === 'belief'} placeholder={add} onAdd={(t) => insert('beliefs', { kind, title: t, sort: Math.min(0, ...list.map((b) => b.sort)) - 1 })} />
             <SortableList className="beliefs" items={list} id={(b) => b.id} onReorder={(next) => updateMany('beliefs', sortPatches(next))}>
               {(b, grip) => <BeliefCard b={b} grip={grip} />}
             </SortableList>
-            <AddLine placeholder={add} onAdd={(t) => insert('beliefs', { kind, title: t, sort: list.length })} />
           </Section>
         )
       })}

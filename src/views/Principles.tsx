@@ -20,10 +20,10 @@ export function Principles() {
         <p className="lede">How you choose. One of these shows on Today each day, along with your focus track's own rules.</p>
       </header>
       <Section title="Life-wide">
+        <AddLine primary placeholder="Add a life-wide principle" onAdd={(title) => insert('principles', { title, track_id: null, sort: Math.min(0, ...global.map((p) => p.sort)) - 1 })} />
         <SortableList className="principles" items={global} id={(p) => p.id} onReorder={reorder}>
           {(p, grip) => <PrincipleCard p={p} grip={grip} />}
         </SortableList>
-        <AddLine placeholder="Add a life-wide principle" onAdd={(title) => insert('principles', { title, track_id: null, sort: global.length })} />
       </Section>
       {perTrack.map(({ track, items }) => (
         <Section

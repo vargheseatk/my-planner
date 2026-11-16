@@ -47,7 +47,7 @@ export function Errands() {
       >
         <div className="errand-input">
           <Icon name="plus" size={16} />
-          <input placeholder="Call the bank, read that article…" value={text} onChange={(e) => setText(e.target.value)} />
+          <input data-primary-add placeholder="Call the bank, read that article…" value={text} onChange={(e) => setText(e.target.value)} />
         </div>
         {text.trim() && (
           <div className="chips">
