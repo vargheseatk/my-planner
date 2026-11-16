@@ -57,7 +57,7 @@ export function Capture({ defaults, onDone }: { defaults: CaptureDefaults; onDon
       />
       {kind === 'idea' ? (
         <div className="field">
-          <label>Heading</label>
+          <label>Bucket</label>
           <div className="chips">
             {[{ id: '', name: 'Unsorted', color: 'var(--muted)' }, ...sortedGroups(data.idea_groups)].map((g) => (
               <button key={g.id} type="button" className={`chip-btn ${groupId === g.id ? 'on' : ''}`} style={{ '--c': g.color } as React.CSSProperties} onClick={() => setGroupId(g.id)}>

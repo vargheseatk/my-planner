@@ -19,14 +19,13 @@ import { AREAS, Menu, Sheet, UICtx, openTasks, sortedTracks, type CaptureDefault
 import type { Track } from './types'
 import { TaskDetail } from './components/TaskDetail'
 import { Capture } from './components/Capture'
-import { goPage, goTrack, readHash } from './nav'
+import { goBucket, goPage, goPanel, goTrack, readHash, type Panel } from './nav'
 
 // The board shows one view at a time: header tabs on wide screens, bottom tabs on phones.
-type Panel = 'tasks' | 'habits' | 'ideas' | 'deadlines' | 'errands' | 'reach'
 const VIEWS: { panel: Panel; label: string }[] = [
+  { panel: 'ideas', label: 'Ideas' },
   { panel: 'tasks', label: 'Tasks' },
   { panel: 'habits', label: 'Habits' },
-  { panel: 'ideas', label: 'Ideas' },
   { panel: 'errands', label: 'Errands' },
   { panel: 'reach', label: 'Reach out' },
 ]
@@ -52,7 +51,8 @@ export function App() {
 function Shell() {
   const { data, loading, error, clearError } = useStore()
   const [route, setRoute] = useState(readHash)
-  const [panel, setPanel] = useState<Panel>('tasks')
+  // The app opens on Ideas: catching a thought is the most common reason to open it.
+  const [panel, setPanel] = useState<Panel>('ideas')
   const [taskId, setTaskId] = useState<string | null>(null)
   const [capture, setCapture] = useState<CaptureDefaults | null>(null)
   // Track sheet: a track id for its details, 'new' to create one.
@@ -81,6 +81,15 @@ function Shell() {
   }, [])
 
   const trackId = route.page === 'board' ? route.trackId : null
+  const bucket = route.page === 'board' ? route.bucket : undefined
+
+  // The URL can pick the view: a bucket opens Ideas, a track opens Tasks, #v/<panel> (shortcuts) opens that panel.
+  useEffect(() => {
+    if (route.page !== 'board') return
+    if (route.bucket !== undefined) setPanel('ideas')
+    else if (route.trackId) setPanel((p) => (p === 'deadlines' ? p : 'tasks'))
+    else if (route.panel) setPanel(route.panel)
+  }, [route])
   const ui = useMemo(
     () => ({
       openTask: setTaskId,
@@ -109,7 +118,7 @@ function Shell() {
   const habitsLeft = activeHabits(data.habits).filter((h) => !data.habit_logs.some((l) => l.habit_id === h.id && l.day === today)).length
   const showPanel = (p: Panel) => {
     setPanel(p)
-    if (route.page !== 'board') goTrack(null)
+    if (route.page !== 'board' || bucket !== undefined || route.panel) goTrack(null)
     window.scrollTo(0, 0)
   }
 
@@ -117,7 +126,7 @@ function Shell() {
     <UICtx.Provider value={ui}>
       <div className="app">
         <header className="top">
-          <button className="brand" aria-label="Overview" onClick={() => goTrack(null)}>
+          <button className="brand" aria-label="Home: Ideas" onClick={() => goBucket(null)}>
             <span className="brand-mark" />
           </button>
           <TrackMenu current={route.page === 'board' ? trackId : undefined} onNew={() => setTrackSheet('new')} />
@@ -180,7 +189,7 @@ function Shell() {
             <p className="empty">Loading…</p>
           ) : route.page === 'board' ? (
             <div className={`board show-${panel}`}>
-              {panel === 'tasks' ? <TasksPanel trackId={trackId} /> : panel === 'deadlines' ? <Deadlines trackId={trackId} /> : panel === 'errands' ? <Errands /> : panel === 'habits' ? <Habits /> : panel === 'ideas' ? <Ideas /> : <Reach />}
+              {panel === 'tasks' ? <TasksPanel trackId={trackId} /> : panel === 'deadlines' ? <Deadlines trackId={trackId} /> : panel === 'errands' ? <Errands /> : panel === 'habits' ? <Habits /> : panel === 'ideas' ? <Ideas bucket={bucket ?? null} /> : <Reach />}
             </div>
           ) : route.page === 'self' ? (
             <Self />
@@ -192,6 +201,11 @@ function Shell() {
         </main>
 
         <nav className="tabbar">
+          <button className={route.page === 'board' && panel === 'ideas' ? 'on' : ''} onClick={() => showPanel('ideas')}>
+            <Icon name="ideas" />
+            <span>Ideas</span>
+            {inbox > 0 && <span className="badge">{inbox}</span>}
+          </button>
           <button className={route.page === 'board' && panel === 'tasks' ? 'on' : ''} onClick={() => showPanel('tasks')}>
             <Icon name="list" />
             <span>Tasks</span>
@@ -200,11 +214,6 @@ function Shell() {
             <Icon name="check" />
             <span>Habits</span>
             {habitsLeft > 0 && <span className="badge">{habitsLeft}</span>}
-          </button>
-          <button className={route.page === 'board' && panel === 'ideas' ? 'on' : ''} onClick={() => showPanel('ideas')}>
-            <Icon name="ideas" />
-            <span>Ideas</span>
-            {inbox > 0 && <span className="badge">{inbox}</span>}
           </button>
           <button className={route.page === 'board' && panel === 'errands' ? 'on' : ''} onClick={() => showPanel('errands')}>
             <Icon name="flag" />
@@ -277,7 +286,7 @@ function TrackMenu({ current, onNew }: { current: string | null | undefined; onN
     >
       {(close) => (
         <>
-          <button role="menuitem" className={current === null ? 'on' : ''} onClick={() => (close(), goTrack(null))}>
+          <button role="menuitem" className={current === null ? 'on' : ''} onClick={() => (close(), goPanel('tasks'))}>
             <span className="dot" style={{ '--c': 'var(--accent)' } as React.CSSProperties} />
             All tracks
           </button>

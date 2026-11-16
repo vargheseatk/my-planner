@@ -1,7 +1,7 @@
 // Service worker: makes the planner installable and lets the app shell open offline.
 // Pages are network-first (so a deploy shows up on the next open); hashed assets are cache-first.
 // Supabase calls are never cached: the data always comes live.
-const CACHE = 'planner-v1'
+const CACHE = 'planner-v2'
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest', './icon-192.png'])))

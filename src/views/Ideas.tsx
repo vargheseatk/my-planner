@@ -1,128 +1,64 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { goBucket } from '../nav'
 import { useStore } from '../store'
 import type { Idea, IdeaGroup } from '../types'
 import { Icon } from '../components/icons'
 import { AddLine, EditText, TrackTag, useUI } from '../components/ui'
 import { SortableList, sortPatches } from '../components/Sortable'
 
-// Ideas notebook: one-liners gathered under headings (a film, Reels, a business thought).
+// Ideas notebook: one-liners kept in buckets (a film, Reels, a business thought), like tracks hold tasks.
 // Not tasks: an idea only becomes work when he taps "Make task".
+// The list shows the buckets; tapping one opens it with the add box ready, so jotting is tap, type, Enter.
 const LIVE = new Set(['inbox', 'kept', 'parked'])
 const COLORS = ['#c2562b', '#d0812f', '#3d8a55', '#2f8a8a', '#5b6fd6', '#8a5bd6', '#c2557a', '#8a7f72']
+const UNSORTED = 'unsorted'
 const bySort = (a: Idea, b: Idea) => a.sort - b.sort || b.created_at.localeCompare(a.created_at)
-const OPEN_KEY = 'planner.ideas.open'
-
-function readOpen(): Record<string, boolean> {
-  try {
-    return JSON.parse(localStorage.getItem(OPEN_KEY) ?? '{}')
-  } catch {
-    return {}
-  }
-}
 
 export const sortedGroups = (groups: IdeaGroup[]) => groups.slice().sort((a, b) => a.sort - b.sort || a.created_at.localeCompare(b.created_at))
 export const unsortedIdeas = (ideas: Idea[]) => ideas.filter((i) => LIVE.has(i.status) && !i.group_id)
+const liveIn = (ideas: Idea[], group: string | null) => ideas.filter((i) => LIVE.has(i.status) && i.group_id === group).sort(bySort)
+// New and moved ideas land on top of their bucket.
+const topSort = (ideas: Idea[], group: string | null) => Math.min(0, ...ideas.filter((i) => i.group_id === group).map((i) => i.sort)) - 1
 
-export function Ideas() {
+export function Ideas({ bucket }: { bucket: string | null }) {
+  const { data } = useStore()
+  if (bucket === UNSORTED) return <Bucket group={null} />
+  const group = data.idea_groups.find((g) => g.id === bucket)
+  return group ? <Bucket key={group.id} group={group} /> : <Buckets />
+}
+
+// ---------- The bucket list ----------
+
+function Buckets() {
   const { data, insert, updateMany } = useStore()
   const groups = sortedGroups(data.idea_groups)
-  const live = data.ideas.filter((i) => LIVE.has(i.status))
-  const unsorted = unsortedIdeas(data.ideas).sort(bySort)
-  const letGo = data.ideas.filter((i) => i.status === 'dropped').sort((a, b) => b.created_at.localeCompare(a.created_at))
-  const [text, setText] = useState('')
-  const [addTo, setAddTo] = useState('')
-  const [open, setOpenState] = useState(readOpen)
-  const setOpen = (id: string, v: boolean) => {
-    const next = { ...open, [id]: v }
-    setOpenState(next)
-    try {
-      localStorage.setItem(OPEN_KEY, JSON.stringify(next))
-    } catch {
-      /* private mode: folds just won't be remembered */
-    }
-  }
-
-  // New ideas go to the top of their heading.
-  const add = async (body: string, group_id: string | null) => {
-    const top = Math.min(0, ...live.filter((i) => i.group_id === group_id).map((i) => i.sort)) - 1
-    await insert('ideas', { body, group_id, sort: top })
-  }
-  const reorder = (next: Idea[]) => updateMany('ideas', sortPatches(next))
+  const unsorted = liveIn(data.ideas, null)
+  const [showGone, setShowGone] = useState(false)
+  const gone = data.ideas.filter((i) => i.status === 'dropped').sort((a, b) => b.created_at.localeCompare(a.created_at))
 
   return (
     <div className="panel ideas-panel">
-      <form
-        className="idea-add"
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (!text.trim()) return
-          add(text.trim(), addTo || null)
-          setText('')
-          if (addTo) setOpen(addTo, true)
-        }}
-      >
-        <textarea
-          data-primary-add
-          rows={1}
-          placeholder="Jot an idea…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              e.currentTarget.form?.requestSubmit()
-            }
-          }}
-        />
-        <div className="idea-add-row">
-          <label className="idea-to">
-            under
-            <select value={addTo} onChange={(e) => setAddTo(e.target.value)}>
-              <option value="">Unsorted</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="btn small primary" disabled={!text.trim()}>
-            Save
-          </button>
-        </div>
-      </form>
+      <header className="track-head">
+        <h1>Ideas</h1>
+      </header>
+      <div className="bucket-list">
+        <BucketCard id={UNSORTED} name="Unsorted" color="var(--muted)" ideas={unsorted} />
+        <SortableList items={groups} id={(g) => g.id} onReorder={(next) => updateMany('idea_groups', sortPatches(next))}>
+          {(g, grip) => <BucketCard id={g.id} name={g.name} color={g.color} ideas={liveIn(data.ideas, g.id)} grip={grip} />}
+        </SortableList>
+      </div>
+      <AddLine placeholder="New bucket (a film, Reels, a topic…)" onAdd={(name) => insert('idea_groups', { name, sort: groups.length, color: COLORS[groups.length % COLORS.length] })} />
 
-      {unsorted.length > 0 && (
-        <section className="idea-group">
-          <div className="idea-group-head static">
-            <h2>Unsorted</h2>
-            <span className="count">{unsorted.length}</span>
-          </div>
-          <SortableList className="idea-list" items={unsorted} id={(i) => i.id} onReorder={reorder}>
-            {(i, grip) => <IdeaRow idea={i} grip={grip} groups={groups} />}
-          </SortableList>
-        </section>
-      )}
-
-      <SortableList items={groups} id={(g) => g.id} onReorder={(next) => updateMany('idea_groups', sortPatches(next))}>
-        {(g, grip) => {
-          const items = live.filter((i) => i.group_id === g.id).sort(bySort)
-          return <GroupSection group={g} grip={grip} items={items} groups={groups} open={!!open[g.id]} onToggle={() => setOpen(g.id, !open[g.id])} onAdd={(body) => add(body, g.id)} onReorder={reorder} />
-        }}
-      </SortableList>
-
-      <AddLine placeholder="New heading (a film, Reels, a topic…)" onAdd={(name) => insert('idea_groups', { name, sort: groups.length, color: COLORS[groups.length % COLORS.length] })} />
-
-      {letGo.length > 0 && (
+      {gone.length > 0 && (
         <section className="idea-group letgo">
-          <button className="idea-group-head" aria-expanded={!!open.letgo} onClick={() => setOpen('letgo', !open.letgo)}>
-            <Icon name={open.letgo ? 'down' : 'right'} size={16} />
+          <button className="idea-group-head" aria-expanded={showGone} onClick={() => setShowGone(!showGone)}>
+            <Icon name={showGone ? 'down' : 'right'} size={16} />
             <h2>Let go</h2>
-            <span className="count">{letGo.length}</span>
+            <span className="count">{gone.length}</span>
           </button>
-          {open.letgo && (
+          {showGone && (
             <div className="idea-list">
-              {letGo.map((i) => (
+              {gone.map((i) => (
                 <IdeaRow key={i.id} idea={i} groups={groups} />
               ))}
             </div>
@@ -133,63 +69,104 @@ export function Ideas() {
   )
 }
 
-function GroupSection({
-  group,
-  grip,
-  items,
-  groups,
-  open,
-  onToggle,
-  onAdd,
-  onReorder,
-}: {
-  group: IdeaGroup
-  grip: React.ReactNode
-  items: Idea[]
-  groups: IdeaGroup[]
-  open: boolean
-  onToggle: () => void
-  onAdd: (body: string) => void
-  onReorder: (next: Idea[]) => void
-}) {
-  const { update, remove } = useStore()
-  const [editing, setEditing] = useState(false)
+function BucketCard({ id, name, color, ideas, grip }: { id: string; name: string; color: string; ideas: Idea[]; grip?: React.ReactNode }) {
   return (
-    <section className="idea-group" style={{ '--c': group.color } as React.CSSProperties}>
-      <div className="idea-group-top">
-        {grip}
-        <button className="idea-group-head" aria-expanded={open} onClick={onToggle}>
-          <Icon name={open ? 'down' : 'right'} size={16} />
-          <span className="dot" />
-          <h2>{group.name}</h2>
-          <span className="count">{items.length}</span>
-        </button>
-        <button className="icon-btn ghost small" aria-label={`Edit ${group.name}`} aria-expanded={editing} onClick={() => setEditing(!editing)}>
-          <Icon name="more" size={16} />
-        </button>
-      </div>
-      {editing && (
+    <div className="bucket-item" style={{ '--c': color } as React.CSSProperties}>
+      {grip ?? <span className="grip-space" />}
+      <button className="bucket-card" onClick={() => goBucket(id)}>
+        <span className="dot" />
+        <span className="ov-main">
+          <span className="ov-name">{name}</span>
+          <span className="ov-next">{ideas[0]?.body ?? 'Empty. Tap to add an idea'}</span>
+        </span>
+        {ideas.length > 0 && <span className="count">{ideas.length}</span>}
+        <Icon name="right" size={16} />
+      </button>
+    </div>
+  )
+}
+
+// ---------- One bucket: add box on top, its ideas below ----------
+
+function Bucket({ group }: { group: IdeaGroup | null }) {
+  const { data, insert, update, remove, updateMany } = useStore()
+  const groups = sortedGroups(data.idea_groups)
+  const ideas = liveIn(data.ideas, group?.id ?? null)
+  const [text, setText] = useState('')
+  const [editing, setEditing] = useState(false)
+  const box = useRef<HTMLTextAreaElement>(null)
+  const name = group?.name ?? 'Unsorted'
+
+  // Opening a bucket means "I have an idea": put the cursor in the box.
+  useEffect(() => box.current?.focus(), [])
+
+  const save = () => {
+    const body = text.trim()
+    if (!body) return
+    insert('ideas', { body, group_id: group?.id ?? null, sort: topSort(data.ideas, group?.id ?? null) })
+    setText('')
+    box.current?.focus()
+  }
+
+  return (
+    <div className="panel ideas-panel" style={{ '--c': group?.color ?? 'var(--muted)' } as React.CSSProperties}>
+      <button className="link-plain bucket-back" onClick={() => goBucket(null)}>
+        <Icon name="left" size={16} /> Ideas
+      </button>
+      <header className="track-head">
+        <span className="dot big" />
+        <h1>{name}</h1>
+        {group && (
+          <button className="icon-btn" aria-label="Bucket settings" aria-expanded={editing} onClick={() => setEditing(!editing)}>
+            <Icon name="more" />
+          </button>
+        )}
+      </header>
+      {group && editing && (
         <div className="idea-group-edit">
-          <EditText className="boxed" value={group.name} onSave={(name) => name.trim() && update('idea_groups', group.id, { name: name.trim() })} />
+          <EditText className="boxed" value={group.name} onSave={(n) => n.trim() && update('idea_groups', group.id, { name: n.trim() })} />
           <div className="chips">
             {COLORS.map((c) => (
               <button key={c} className={`swatch ${group.color === c ? 'on' : ''}`} style={{ background: c }} aria-label="Colour" onClick={() => update('idea_groups', group.id, { color: c })} />
             ))}
           </div>
-          <button className="btn small ghost" onClick={() => confirm(`Delete the heading "${group.name}"? Its ideas move to Unsorted.`) && remove('idea_groups', group.id)}>
-            <Icon name="trash" size={14} /> Delete heading
+          <button className="btn small ghost" onClick={() => confirm(`Delete the bucket "${group.name}"? Its ideas move to Unsorted.`) && (remove('idea_groups', group.id), goBucket(null))}>
+            <Icon name="trash" size={14} /> Delete bucket
           </button>
         </div>
       )}
-      {open && (
-        <>
-          <AddLine placeholder={`Add to ${group.name}`} onAdd={onAdd} />
-          <SortableList className="idea-list" items={items} id={(i) => i.id} onReorder={onReorder}>
-            {(i, g) => <IdeaRow idea={i} grip={g} groups={groups} />}
-          </SortableList>
-        </>
-      )}
-    </section>
+
+      <form
+        className="idea-add"
+        onSubmit={(e) => {
+          e.preventDefault()
+          save()
+        }}
+      >
+        <textarea
+          ref={box}
+          data-primary-add
+          rows={1}
+          placeholder={`An idea for ${name}…`}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              save()
+            }
+          }}
+        />
+        <button className="btn small primary" disabled={!text.trim()}>
+          Save
+        </button>
+      </form>
+
+      <SortableList className="idea-list" items={ideas} id={(i) => i.id} onReorder={(next) => updateMany('ideas', sortPatches(next))}>
+        {(i, grip) => <IdeaRow idea={i} grip={grip} groups={groups} />}
+      </SortableList>
+      {ideas.length === 0 && <p className="lane-empty">Nothing here yet.</p>}
+    </div>
   )
 }
 
@@ -199,8 +176,6 @@ function IdeaRow({ idea, grip, groups }: { idea: Idea; grip?: React.ReactNode; g
   const [actions, setActions] = useState(false)
   const track = data.tracks.find((t) => t.id === idea.track_id)
   const dropped = idea.status === 'dropped'
-  // Moved ideas land on top of their new heading.
-  const topSort = (group: string | null) => Math.min(0, ...data.ideas.filter((i) => i.group_id === group).map((i) => i.sort)) - 1
 
   const toTask = async () => {
     const created = await insert('tasks', { title: idea.body.slice(0, 140), notes: idea.body.length > 140 ? idea.body : null, track_id: idea.track_id })
@@ -235,7 +210,14 @@ function IdeaRow({ idea, grip, groups }: { idea: Idea; grip?: React.ReactNode; g
             <>
               <label className="idea-to">
                 Move to
-                <select value={idea.group_id ?? ''} onChange={(e) => (update('ideas', idea.id, { group_id: e.target.value || null, sort: topSort(e.target.value || null) }), setActions(false))}>
+                <select
+                  value={idea.group_id ?? ''}
+                  onChange={(e) => {
+                    const to = e.target.value || null
+                    update('ideas', idea.id, { group_id: to, sort: topSort(data.ideas, to) })
+                    setActions(false)
+                  }}
+                >
                   <option value="">Unsorted</option>
                   {groups.map((g) => (
                     <option key={g.id} value={g.id}>
