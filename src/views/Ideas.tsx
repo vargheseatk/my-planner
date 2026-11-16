@@ -3,7 +3,7 @@ import { goBucket } from '../nav'
 import { useStore } from '../store'
 import type { Idea, IdeaGroup } from '../types'
 import { Icon } from '../components/icons'
-import { AddLine, EditText, TrackTag, useUI } from '../components/ui'
+import { AddLine, EditText, useUI } from '../components/ui'
 import { SortableList, sortPatches } from '../components/Sortable'
 
 // Ideas notebook: one-liners kept in buckets (a film, Reels, a business thought), like tracks hold tasks.
@@ -174,7 +174,6 @@ function IdeaRow({ idea, grip, groups }: { idea: Idea; grip?: React.ReactNode; g
   const { data, insert, update, remove } = useStore()
   const { openTask } = useUI()
   const [actions, setActions] = useState(false)
-  const track = data.tracks.find((t) => t.id === idea.track_id)
   const dropped = idea.status === 'dropped'
 
   const toTask = async () => {
@@ -190,7 +189,6 @@ function IdeaRow({ idea, grip, groups }: { idea: Idea; grip?: React.ReactNode; g
       <div className="idea-line">
         {grip}
         <EditText multiline className="idea-text" value={idea.body} onSave={(body) => body.trim() && update('ideas', idea.id, { body: body.trim() })} />
-        {track && <TrackTag track={track} />}
         <button className="icon-btn ghost small" aria-label="Idea actions" aria-expanded={actions} onClick={() => setActions(!actions)}>
           <Icon name="more" size={16} />
         </button>
