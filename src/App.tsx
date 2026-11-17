@@ -19,7 +19,7 @@ import { AREAS, Menu, Sheet, UICtx, openTasks, sortedTracks, type CaptureDefault
 import type { Track } from './types'
 import { TaskDetail } from './components/TaskDetail'
 import { Capture } from './components/Capture'
-import { goBucket, goPage, goPanel, goTrack, readHash, type Panel } from './nav'
+import { goPage, goPanel, goTrack, readHash, type Panel } from './nav'
 
 // The board shows one view at a time: header tabs on wide screens, bottom tabs on phones.
 const VIEWS: { panel: Panel; label: string }[] = [
@@ -66,8 +66,8 @@ export function App() {
 function Shell() {
   const { data, loading, error, clearError, pending } = useStore()
   const [route, setRoute] = useState(readHash)
-  // The app opens on Ideas: catching a thought is the most common reason to open it.
-  const [panel, setPanel] = useState<Panel>('ideas')
+  // The app opens on Errands: the small things to do today.
+  const [panel, setPanel] = useState<Panel>('errands')
   const [taskId, setTaskId] = useState<string | null>(null)
   const [capture, setCapture] = useState<CaptureDefaults | null>(null)
   // Track sheet: a track id for its details, 'new' to create one.
@@ -141,7 +141,7 @@ function Shell() {
     <UICtx.Provider value={ui}>
       <div className="app">
         <header className="top">
-          <button className="brand" aria-label="Home: Ideas" onClick={() => goBucket(null)}>
+          <button className="brand" aria-label="Home: Errands" onClick={() => goPanel('errands')}>
             <span className="brand-mark" />
           </button>
           {pending > 0 && (

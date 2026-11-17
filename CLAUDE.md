@@ -37,7 +37,7 @@ npm run planner -- day 2026-11-02 '{"focus_track":"priyamvada","intention":"..."
 - `habits` is the Habits tab: name, principle (the small line under the tracker), goal_count (optional finish
   line in days done, e.g. Daily Film 100), sort. `habit_logs` holds one row per habit per day done.
   The motto on top of the tracker is `settings` key `habits_motto`.
-- `ideas` is the Ideas tab (the app's first view; a notebook, not tasks): one-liners in buckets (`idea_groups`: name, color, sort).
+- `ideas` is the Ideas tab (first tab; the app opens on Errands; a notebook, not tasks): one-liners in buckets (`idea_groups`: name, color, sort).
   `group_id` null = Unsorted. Live statuses inbox/kept/parked; `dropped` = Let go; `converted` = became a task.
   Lower `sort` shows first (new ideas go on top with a negative sort).
 - Checklists are `[{ "text", "done" }]` on the task; blocks are `[{ "time", "label", "done" }]` on the day.

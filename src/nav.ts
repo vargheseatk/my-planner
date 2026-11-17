@@ -17,15 +17,18 @@ export function readHash(): Route {
   return { page: 'board', trackId: null }
 }
 
-export const goTrack = (id: string | null) => {
-  location.hash = id ? `t/${id}` : ''
+// Back button: opening something (a track, a bucket, a page) adds a step to the phone's history;
+// going back out and switching tabs replace the current step. So pressing back always ends up
+// leaving the app instead of looping between views.
+const push = (hash: string) => {
+  location.hash = hash
+  history.replaceState({ inApp: true }, '')
 }
-export const goBucket = (id: string | null) => {
-  location.hash = id ? `i/${id}` : 'i'
-}
-export const goPanel = (panel: Panel) => {
-  location.hash = `v/${panel}`
-}
-export const goPage = (page: Page) => {
-  location.hash = page
-}
+const replace = (hash: string) => location.replace(`#${hash}`)
+
+export const goTrack = (id: string | null) => (id ? push(`t/${id}`) : replace(''))
+export const goBucket = (id: string | null) => (id ? push(`i/${id}`) : replace('i'))
+export const goPanel = (panel: Panel) => replace(`v/${panel}`)
+export const goPage = (page: Page) => push(page)
+// An in-app back link: step back if we opened this view, else go to its parent.
+export const goBack = (parent: string) => (history.state?.inApp ? history.back() : replace(parent))

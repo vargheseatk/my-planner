@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { goBucket } from '../nav'
+import { goBack, goBucket } from '../nav'
 import { useStore } from '../store'
 import type { Idea, IdeaGroup } from '../types'
 import { Icon } from '../components/icons'
@@ -110,7 +110,7 @@ function Bucket({ group }: { group: IdeaGroup | null }) {
 
   return (
     <div className="panel ideas-panel" style={{ '--c': group?.color ?? 'var(--muted)' } as React.CSSProperties}>
-      <button className="link-plain bucket-back" onClick={() => goBucket(null)}>
+      <button className="link-plain bucket-back" onClick={() => goBack('i')}>
         <Icon name="left" size={16} /> Ideas
       </button>
       <header className="track-head">
@@ -130,7 +130,7 @@ function Bucket({ group }: { group: IdeaGroup | null }) {
               <button key={c} className={`swatch ${group.color === c ? 'on' : ''}`} style={{ background: c }} aria-label="Colour" onClick={() => update('idea_groups', group.id, { color: c })} />
             ))}
           </div>
-          <button className="btn small ghost" onClick={() => confirm(`Delete the bucket "${group.name}"? Its ideas move to Unsorted.`) && (remove('idea_groups', group.id), goBucket(null))}>
+          <button className="btn small ghost" onClick={() => confirm(`Delete the bucket "${group.name}"? Its ideas move to Unsorted.`) && (remove('idea_groups', group.id), goBack('i'))}>
             <Icon name="trash" size={14} /> Delete bucket
           </button>
         </div>
