@@ -59,5 +59,8 @@ ideas, tasks, milestones, days, beliefs, outreach, habits, habit_logs, settings,
 
 - `npm run dev` for localhost, `npm run build` to type-check and build.
 - Migrations: `npm run migrate -- supabase/migrations/000N_name.sql`.
+- Local-first (`src/store.tsx`): the app opens from a copy saved in localStorage, writes show instantly and go
+  through an outbox that retries until the server confirms. New table columns with defaults need a matching
+  entry in `DEFAULTS` there, and every new table goes in `TABLES`.
 - Deploys: GitHub Actions builds and publishes to Pages on push to `main`. Build and verify locally,
   commit locally, push only when Varghese says so.

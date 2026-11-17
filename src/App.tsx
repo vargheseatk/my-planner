@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
-import { StoreProvider, useStore } from './store'
+import { StoreProvider, clearLocalData, useStore } from './store'
 import { TasksPanel } from './views/Tasks'
 import { Deadlines } from './views/Deadlines'
 import { Errands } from './views/Errands'
@@ -30,12 +30,27 @@ const VIEWS: { panel: Panel; label: string }[] = [
   { panel: 'reach', label: 'Reach out' },
 ]
 
+// A saved login on this device: open the planner straight away instead of waiting for the network.
+function hasSavedLogin() {
+  try {
+    return Object.keys(localStorage).some((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+  } catch {
+    return false
+  }
+}
+
 export function App() {
-  const [session, setSession] = useState<Session | null | undefined>(undefined)
+  const [session, setSession] = useState<Session | 'saved' | null | undefined>(() => (hasSavedLogin() ? 'saved' : undefined))
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    // Offline, refreshing an old login fails with an error: keep the saved login rather than showing sign-in.
+    supabase.auth.getSession().then(({ data, error }) => setSession((s) => data.session ?? (error && s === 'saved' ? s : null)))
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'SIGNED_OUT') {
+        clearLocalData()
+        setSession(null)
+      } else if (s) setSession(s)
+    })
     return () => data.subscription.unsubscribe()
   }, [])
 
@@ -49,7 +64,7 @@ export function App() {
 }
 
 function Shell() {
-  const { data, loading, error, clearError } = useStore()
+  const { data, loading, error, clearError, pending } = useStore()
   const [route, setRoute] = useState(readHash)
   // The app opens on Ideas: catching a thought is the most common reason to open it.
   const [panel, setPanel] = useState<Panel>('ideas')
@@ -129,6 +144,11 @@ function Shell() {
           <button className="brand" aria-label="Home: Ideas" onClick={() => goBucket(null)}>
             <span className="brand-mark" />
           </button>
+          {pending > 0 && (
+            <span className="sync-pill" title="Saved on this device. It will sync when the connection is back.">
+              {pending} to sync
+            </span>
+          )}
           <TrackMenu current={route.page === 'board' ? trackId : undefined} onNew={() => setTrackSheet('new')} />
           <span className="spacer" />
           <div className="view-seg" role="tablist">

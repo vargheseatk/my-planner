@@ -1,7 +1,9 @@
-// Service worker: makes the planner installable and lets the app shell open offline.
-// Pages are network-first (so a deploy shows up on the next open); hashed assets are cache-first.
-// Supabase calls are never cached: the data always comes live.
-const CACHE = 'planner-v2'
+// Service worker: makes the planner installable and opens it instantly, even on slow or no data.
+// The page shell opens from the phone's copy and refreshes in the background (a deploy shows up on the
+// next open). Hashed assets and Google Fonts are cache-first. Supabase calls are never cached:
+// the app keeps its own saved copy of the data.
+const CACHE = 'planner-v3'
+const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com']
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest', './icon-192.png'])))
@@ -13,35 +15,27 @@ self.addEventListener('activate', (e) => {
   self.clients.claim()
 })
 
+const store = (key, res) => {
+  if (res.ok || res.type === 'opaque') {
+    const copy = res.clone()
+    caches.open(CACHE).then((c) => c.put(key, copy))
+  }
+  return res
+}
+
 self.addEventListener('fetch', (e) => {
   const req = e.request
+  if (req.method !== 'GET') return
   const url = new URL(req.url)
-  if (req.method !== 'GET' || url.origin !== location.origin) return
+  const sameOrigin = url.origin === location.origin
+  if (!sameOrigin && !FONT_HOSTS.includes(url.hostname)) return
 
   if (req.mode === 'navigate') {
-    e.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone()
-          caches.open(CACHE).then((c) => c.put('./', copy))
-          return res
-        })
-        .catch(() => caches.match('./')),
-    )
+    const fresh = fetch(req).then((res) => store('./', res))
+    e.respondWith(caches.match('./').then((hit) => hit || fresh))
+    e.waitUntil(fresh.catch(() => {}))
     return
   }
 
-  e.respondWith(
-    caches.match(req).then(
-      (hit) =>
-        hit ||
-        fetch(req).then((res) => {
-          if (res.ok) {
-            const copy = res.clone()
-            caches.open(CACHE).then((c) => c.put(req, copy))
-          }
-          return res
-        }),
-    ),
-  )
+  e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => store(req, res))))
 })

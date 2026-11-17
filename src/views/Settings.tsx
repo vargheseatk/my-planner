@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { OWNER_EMAIL } from '../config'
 import { supabase } from '../supabase'
+import { clearLocalData } from '../store'
 import { Icon } from '../components/icons'
 
 export function Settings() {
@@ -14,7 +15,7 @@ export function Settings() {
       <section className="card">
         <h3>Sign out</h3>
         <p className="muted">You'll need your password (or an email code) to get back in.</p>
-        <button className="btn" onClick={() => supabase.auth.signOut()}>
+        <button className="btn" onClick={() => (clearLocalData(), supabase.auth.signOut())}>
           <Icon name="logout" size={16} /> Sign out
         </button>
       </section>
